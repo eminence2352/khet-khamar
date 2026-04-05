@@ -12,7 +12,6 @@ const dictionary = {
     like: "Like",
     comment: "Comment",
     share: "Share",
-    save: "Save",
     home: "Home",
     marketplace: "Market",
     weather: "Weather",
@@ -32,7 +31,6 @@ const dictionary = {
     like: "লাইক",
     comment: "মন্তব্য",
     share: "শেয়ার",
-    save: "সেভ",
     home: "হোম",
     marketplace: "মার্কেট",
     weather: "আবহাওয়া",
@@ -45,74 +43,6 @@ const body = document.body;
 const toggleBtn = document.getElementById("langToggle");
 const translatableNodes = document.querySelectorAll("[data-i18n]");
 const translatablePlaceholders = document.querySelectorAll("[data-i18n-placeholder]");
-
-let googleTranslateInitialized = false;
-
-function ensureGoogleTranslateReady() {
-  if (googleTranslateInitialized) {
-    return;
-  }
-
-  if (!document.getElementById('google_translate_element')) {
-    const hiddenContainer = document.createElement('div');
-    hiddenContainer.id = 'google_translate_element';
-    hiddenContainer.style.position = 'fixed';
-    hiddenContainer.style.left = '-9999px';
-    hiddenContainer.style.top = '0';
-    document.body.appendChild(hiddenContainer);
-  }
-
-  window.googleTranslateElementInit = function googleTranslateElementInit() {
-    if (!window.google || !window.google.translate || !window.google.translate.TranslateElement) {
-      return;
-    }
-
-    new window.google.translate.TranslateElement(
-      {
-        pageLanguage: 'en',
-        includedLanguages: 'en,bn',
-        autoDisplay: false,
-      },
-      'google_translate_element'
-    );
-  };
-
-  const existingScript = document.querySelector('script[data-google-translate="true"]');
-  if (!existingScript) {
-    const scriptTag = document.createElement('script');
-    scriptTag.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-    scriptTag.async = true;
-    scriptTag.dataset.googleTranslate = 'true';
-    document.body.appendChild(scriptTag);
-  }
-
-  googleTranslateInitialized = true;
-}
-
-function setGoogleTranslateLanguage(lang) {
-  const targetValue = lang === 'bn' ? 'bn' : '';
-  const maxRetries = 15;
-  let attempt = 0;
-
-  function tryApply() {
-    const select = document.querySelector('.goog-te-combo');
-    if (!select) {
-      attempt += 1;
-      if (attempt < maxRetries) {
-        setTimeout(tryApply, 200);
-      }
-      return;
-    }
-
-    if (select.value !== targetValue) {
-      select.value = targetValue;
-      select.dispatchEvent(new Event('change'));
-    }
-  }
-
-  ensureGoogleTranslateReady();
-  tryApply();
-}
 
 function applyLanguage(lang) {
   body.dataset.lang = lang;
@@ -134,16 +64,12 @@ function applyLanguage(lang) {
   });
 
   toggleBtn.textContent = dictionary[lang].toggleLabel;
-
-  setGoogleTranslateLanguage(lang);
 }
 
-if (toggleBtn) {
-  toggleBtn.addEventListener("click", () => {
-    const nextLang = body.dataset.lang === "en" ? "bn" : "en";
-    applyLanguage(nextLang);
-  });
-}
+toggleBtn.addEventListener("click", () => {
+  const nextLang = body.dataset.lang === "en" ? "bn" : "en";
+  applyLanguage(nextLang);
+});
 
 applyLanguage("en");
 
@@ -152,8 +78,6 @@ const marketplaceGrid = document.querySelector(".market-grid");
 const postBtn = document.querySelector(".post-btn");
 const postTextInput = document.getElementById("postText");
 const postPhotoInput = document.getElementById("postPhoto");
-let isAuthenticated = false;
-let notificationsLoadedOnce = false;
 
 function escapeHtml(value) {
   return String(value)
@@ -216,10 +140,6 @@ function renderPosts(posts) {
   const actionLike = dictionary[body.dataset.lang || "en"].like;
   const actionComment = dictionary[body.dataset.lang || "en"].comment;
   const actionShare = dictionary[body.dataset.lang || "en"].share;
-  const actionSave = dictionary[body.dataset.lang || "en"].save;
-  const commentPlaceholder = body.dataset.lang === "bn" ? "মন্তব্য লিখুন..." : "Write a comment...";
-  const replyLabel = body.dataset.lang === "bn" ? "উত্তর" : "Reply";
-  const submitLabel = body.dataset.lang === "bn" ? "পাঠান" : "Send";
 
   feedList.innerHTML = posts
     .map((post, index) => {
@@ -228,17 +148,12 @@ function renderPosts(posts) {
       const createdText = formatRelativeTime(post.createdAt);
       const avatarInitials = escapeHtml(getAvatarInitials(userName));
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
-      const postId = Number(post.id) || 0;
-      const likedByMe = Number(post.likedByMe) === 1 || post.likedByMe === true;
-      const savedByMe = Number(post.savedByMe) === 1 || post.savedByMe === true;
-      const likesCount = Number(post.likesCount) || 0;
-      const commentsCount = Number(post.commentsCount) || 0;
       const postPhotoSection = post.imagePath
         ? `<div class="post-photo post-photo-has-image" role="img" aria-label="Uploaded post image"><img class="post-photo-img" src="${escapeHtml(post.imagePath)}" alt="Post image" /></div>`
         : `<div class="post-photo" role="img" aria-label="Crop photo placeholder"><span data-i18n="photoPlaceholder">${dictionary[body.dataset.lang || "en"].photoPlaceholder}</span></div>`;
 
       return `
-      <article class="post-card" data-post-id="${postId}">
+      <article class="post-card">
         <header class="post-head">
           <div class="avatar ${avatarClass}">${avatarInitials}</div>
           <div class="post-user-meta">
@@ -249,60 +164,13 @@ function renderPosts(posts) {
         <p class="post-text">${textContent}</p>
         ${postPhotoSection}
         <footer class="post-actions" aria-label="Post actions">
-          <button type="button" class="like-btn ${likedByMe ? "is-liked" : ""}" data-post-id="${postId}"><i class="fa-regular fa-heart"></i> <span data-i18n="like">${actionLike}</span> <strong>${likesCount}</strong></button>
-          <button type="button" class="comment-toggle-btn" data-post-id="${postId}"><i class="fa-regular fa-comment"></i> <span data-i18n="comment">${actionComment}</span> <strong>${commentsCount}</strong></button>
+          <button type="button"><i class="fa-regular fa-heart"></i> <span data-i18n="like">${actionLike}</span></button>
+          <button type="button"><i class="fa-regular fa-comment"></i> <span data-i18n="comment">${actionComment}</span></button>
           <button type="button"><i class="fa-solid fa-share-nodes"></i> <span data-i18n="share">${actionShare}</span></button>
-          <button type="button" class="save-btn ${savedByMe ? "is-saved" : ""}" data-post-id="${postId}"><i class="fa-regular fa-bookmark"></i> <span data-i18n="save">${actionSave}</span></button>
         </footer>
-        <section class="comments-wrap" id="comments-wrap-${postId}" style="display:none;">
-          <div id="comments-list-${postId}"></div>
-          <div class="comment-input-row">
-            <textarea id="comment-input-${postId}" placeholder="${commentPlaceholder}"></textarea>
-            <div class="comment-actions-row">
-              <button type="button" class="submit-comment-btn" data-post-id="${postId}" data-parent-comment-id="">${submitLabel}</button>
-            </div>
-          </div>
-          <small style="opacity:0.75;">${replyLabel}: ${body.dataset.lang === "bn" ? "কোন মন্তব্যের উত্তর দিতে Reply চাপুন" : "Click Reply under any comment to add a nested reply"}</small>
-        </section>
       </article>`;
     })
     .join("");
-}
-
-function renderCommentNodes(comments, postId) {
-  if (!Array.isArray(comments) || comments.length === 0) {
-    return `<p class="comment-text">${body.dataset.lang === 'bn' ? 'এখনও মন্তব্য নেই।' : 'No comments yet.'}</p>`;
-  }
-
-  return comments
-    .map((comment) => {
-      const userName = escapeHtml(comment.userName || `User #${comment.userId}`);
-      const textContent = escapeHtml(comment.textContent || '');
-      const createdText = formatRelativeTime(comment.createdAt);
-      const commentId = Number(comment.id) || 0;
-      const replyBoxId = `reply-input-${postId}-${commentId}`;
-
-      return `
-        <article class="comment-item">
-          <div class="comment-meta">
-            <p class="comment-user">${userName}</p>
-            <p class="comment-time">${createdText}</p>
-          </div>
-          <p class="comment-text">${textContent}</p>
-          <div class="comment-actions-row">
-            <button type="button" class="reply-btn" data-post-id="${postId}" data-comment-id="${commentId}">${body.dataset.lang === 'bn' ? 'উত্তর' : 'Reply'}</button>
-          </div>
-          <div class="comment-input-row" id="${replyBoxId}" style="display:none;">
-            <textarea id="reply-text-${postId}-${commentId}" placeholder="${body.dataset.lang === 'bn' ? 'উত্তর লিখুন...' : 'Write a reply...'}"></textarea>
-            <div class="comment-actions-row">
-              <button type="button" class="submit-comment-btn" data-post-id="${postId}" data-parent-comment-id="${commentId}">${body.dataset.lang === 'bn' ? 'উত্তর দিন' : 'Reply'}</button>
-            </div>
-          </div>
-          ${Array.isArray(comment.replies) && comment.replies.length > 0 ? `<div class="reply-thread">${renderCommentNodes(comment.replies, postId)}</div>` : ''}
-        </article>
-      `;
-    })
-    .join('');
 }
 
 async function fetchPosts() {
@@ -324,307 +192,6 @@ async function fetchPosts() {
       const errorMessage = body.dataset.lang === "bn" ? "পোস্ট লোড করা যায়নি।" : "Unable to load posts.";
       feedList.innerHTML = `<article class="post-card"><p class="post-text">${errorMessage}</p></article>`;
     }
-  }
-}
-
-async function toggleLike(postId) {
-  if (!isAuthenticated) {
-    alert(body.dataset.lang === 'bn' ? 'লাইক দিতে লগইন করুন।' : 'Please login to like posts.');
-    window.location.href = '/login.html';
-    return;
-  }
-
-  const response = await fetch(`/api/posts/${postId}/like`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update like');
-  }
-
-  await fetchPosts();
-  await refreshNotifications();
-}
-
-async function toggleSave(postId) {
-  if (!isAuthenticated) {
-    alert(body.dataset.lang === 'bn' ? 'সেভ করতে লগইন করুন।' : 'Please login to save posts.');
-    window.location.href = '/login.html';
-    return;
-  }
-
-  const response = await fetch(`/api/posts/${postId}/save`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to update saved post');
-  }
-
-  await fetchPosts();
-}
-
-async function loadComments(postId) {
-  const target = document.getElementById(`comments-list-${postId}`);
-  if (!target) return;
-
-  const response = await fetch(`/api/posts/${postId}/comments`);
-  if (!response.ok) {
-    throw new Error('Failed to load comments');
-  }
-
-  const comments = await response.json();
-  target.innerHTML = renderCommentNodes(comments, postId);
-}
-
-async function submitComment(postId, parentCommentId = null) {
-  if (!isAuthenticated) {
-    alert(body.dataset.lang === 'bn' ? 'মন্তব্য দিতে লগইন করুন।' : 'Please login to comment.');
-    window.location.href = '/login.html';
-    return;
-  }
-
-  const isReply = parentCommentId != null && parentCommentId !== '';
-  const inputId = isReply ? `reply-text-${postId}-${parentCommentId}` : `comment-input-${postId}`;
-  const input = document.getElementById(inputId);
-  const textValue = input ? input.value.trim() : '';
-
-  if (!textValue) {
-    return;
-  }
-
-  const payload = {
-    textContent: textValue,
-  };
-
-  if (isReply) {
-    payload.parentCommentId = Number(parentCommentId);
-  }
-
-  const response = await fetch(`/api/posts/${postId}/comments`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to submit comment');
-  }
-
-  if (input) {
-    input.value = '';
-  }
-
-  await loadComments(postId);
-  await fetchPosts();
-  await refreshNotifications();
-}
-
-function setupFeedInteractions() {
-  if (!feedList) {
-    return;
-  }
-
-  feedList.addEventListener('click', async (event) => {
-    const likeButton = event.target.closest('.like-btn');
-    if (likeButton) {
-      const postId = Number(likeButton.dataset.postId);
-      if (!Number.isInteger(postId) || postId <= 0) return;
-
-      try {
-        await toggleLike(postId);
-      } catch (error) {
-        console.error(error);
-        alert(body.dataset.lang === 'bn' ? 'লাইক আপডেট করা যায়নি।' : 'Unable to update like right now.');
-      }
-      return;
-    }
-
-    const saveButton = event.target.closest('.save-btn');
-    if (saveButton) {
-      const postId = Number(saveButton.dataset.postId);
-      if (!Number.isInteger(postId) || postId <= 0) return;
-
-      try {
-        await toggleSave(postId);
-      } catch (error) {
-        console.error(error);
-        alert(body.dataset.lang === 'bn' ? 'সেভ আপডেট করা যায়নি।' : 'Unable to save this post right now.');
-      }
-      return;
-    }
-
-    const commentToggleButton = event.target.closest('.comment-toggle-btn');
-    if (commentToggleButton) {
-      const postId = Number(commentToggleButton.dataset.postId);
-      if (!Number.isInteger(postId) || postId <= 0) return;
-
-      const wrap = document.getElementById(`comments-wrap-${postId}`);
-      if (!wrap) return;
-
-      const becomingVisible = wrap.style.display === 'none';
-      wrap.style.display = becomingVisible ? 'grid' : 'none';
-
-      if (becomingVisible) {
-        try {
-          await loadComments(postId);
-        } catch (error) {
-          console.error(error);
-        }
-      }
-      return;
-    }
-
-    const replyButton = event.target.closest('.reply-btn');
-    if (replyButton) {
-      const postId = Number(replyButton.dataset.postId);
-      const commentId = Number(replyButton.dataset.commentId);
-      if (!Number.isInteger(postId) || !Number.isInteger(commentId)) return;
-
-      const replyBox = document.getElementById(`reply-input-${postId}-${commentId}`);
-      if (replyBox) {
-        replyBox.style.display = replyBox.style.display === 'none' ? 'grid' : 'none';
-      }
-      return;
-    }
-
-    const submitButton = event.target.closest('.submit-comment-btn');
-    if (submitButton) {
-      const postId = Number(submitButton.dataset.postId);
-      const parentCommentId = submitButton.dataset.parentCommentId || null;
-      if (!Number.isInteger(postId) || postId <= 0) return;
-
-      try {
-        await submitComment(postId, parentCommentId);
-      } catch (error) {
-        console.error(error);
-        alert(body.dataset.lang === 'bn' ? 'মন্তব্য পাঠানো যায়নি।' : 'Unable to post comment right now.');
-      }
-    }
-  });
-}
-
-const notificationBtn = document.getElementById('notificationBtn');
-const notificationBadge = document.getElementById('notificationBadge');
-const notificationPanel = document.getElementById('notificationPanel');
-const notificationList = document.getElementById('notificationList');
-const markAllReadBtn = document.getElementById('markAllReadBtn');
-
-function formatNotificationMessage(notification) {
-  const actor = escapeHtml(notification.actorName || 'Someone');
-  const shortPost = escapeHtml(notification.postPreview || 'a post');
-
-  if (notification.type === 'like') {
-    return body.dataset.lang === 'bn'
-      ? `${actor} আপনার পোস্টে লাইক দিয়েছে: "${shortPost}"`
-      : `${actor} liked your post: "${shortPost}"`;
-  }
-
-  if (notification.type === 'reply') {
-    return body.dataset.lang === 'bn'
-      ? `${actor} একটি উত্তরে লিখেছে: "${shortPost}"`
-      : `${actor} replied on a thread in: "${shortPost}"`;
-  }
-
-  return body.dataset.lang === 'bn'
-    ? `${actor} আপনার পোস্টে মন্তব্য করেছে: "${shortPost}"`
-    : `${actor} commented on your post: "${shortPost}"`;
-}
-
-async function refreshNotifications() {
-  if (!isAuthenticated || !notificationBtn) {
-    return;
-  }
-
-  const response = await fetch('/api/notifications?limit=30');
-  if (!response.ok) {
-    throw new Error('Failed to load notifications');
-  }
-
-  const notifications = await response.json();
-  const unreadCount = notifications.filter((item) => !item.isRead).length;
-
-  if (notificationBadge) {
-    notificationBadge.textContent = String(unreadCount);
-    notificationBadge.style.display = unreadCount > 0 ? 'grid' : 'none';
-  }
-
-  if (!notificationList) {
-    return;
-  }
-
-  if (notifications.length === 0) {
-    notificationList.innerHTML = `<p class="notification-text">${body.dataset.lang === 'bn' ? 'এখনও কোনো নোটিফিকেশন নেই।' : 'No notifications yet.'}</p>`;
-    return;
-  }
-
-  notificationList.innerHTML = notifications
-    .map((notification) => {
-      const createdText = formatRelativeTime(notification.createdAt);
-      return `
-        <article class="notification-item ${notification.isRead ? '' : 'unread'}" data-notification-id="${Number(notification.id) || 0}">
-          <p class="notification-text">${formatNotificationMessage(notification)}</p>
-          <p class="notification-time">${createdText}</p>
-        </article>
-      `;
-    })
-    .join('');
-}
-
-function setupNotificationInteractions() {
-  if (!notificationBtn) {
-    return;
-  }
-
-  notificationBtn.addEventListener('click', async () => {
-    if (!notificationPanel) {
-      window.location.href = '/notifications.html';
-      return;
-    }
-
-    const shouldOpen = notificationPanel.style.display === 'none';
-    notificationPanel.style.display = shouldOpen ? 'block' : 'none';
-
-    if (shouldOpen) {
-      try {
-        await refreshNotifications();
-        await fetch('/api/notifications/read', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        });
-        await refreshNotifications();
-      } catch (error) {
-        console.error('Notification load error:', error);
-      }
-    }
-  });
-
-  if (markAllReadBtn) {
-    markAllReadBtn.addEventListener('click', async () => {
-      try {
-        await fetch('/api/notifications/read', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        });
-        await refreshNotifications();
-      } catch (error) {
-        console.error('Mark-read error:', error);
-      }
-    });
   }
 }
 
@@ -702,6 +269,26 @@ function renderMarketplaceAds(ads) {
     .join("");
 }
 
+async function fetchMarketplaceAds() {
+  if (!marketplaceGrid) {
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/marketplace");
+    if (!response.ok) {
+      throw new Error("Failed to fetch marketplace ads");
+    }
+
+    const ads = await response.json();
+    renderMarketplaceAds(ads);
+  } catch (error) {
+    console.error(error);
+    const errorMessage = body.dataset.lang === "bn" ? "বিজ্ঞাপন লোড করা যায়নি।" : "Unable to load marketplace ads.";
+    marketplaceGrid.innerHTML = `<article class="market-card"><div class="market-body"><p class="market-seller">${errorMessage}</p></div></article>`;
+  }
+}
+
 if (postBtn && postTextInput) {
   postBtn.addEventListener("click", async () => {
     const textContent = postTextInput.value.trim();
@@ -713,6 +300,7 @@ if (postBtn && postTextInput) {
 
     try {
       const formData = new FormData();
+      formData.append("userId", "1");
       formData.append("textContent", textContent);
       if (selectedImageFile) {
         formData.append("image", selectedImageFile);
@@ -739,12 +327,10 @@ if (postBtn && postTextInput) {
   });
 }
 
-if (toggleBtn) {
-  toggleBtn.addEventListener("click", () => {
-    fetchPosts();
-    filterMarketplaceAds();
-  });
-}
+toggleBtn.addEventListener("click", () => {
+  fetchPosts();
+  filterMarketplaceAds();
+});
 
 let allMarketplaceAds = [];
 
@@ -823,6 +409,7 @@ const guestModePrompt = document.getElementById('guestModePrompt');
 const loginLink = document.getElementById('loginLink');
 const signupLink = document.getElementById('signupLink');
 const logoutBtn = document.getElementById('logoutBtn');
+const postBtnElement = document.querySelector('.post-btn');
 
 // Check authentication status on page load
 async function checkAuthentication() {
@@ -831,17 +418,14 @@ async function checkAuthentication() {
     const data = await response.json();
 
     if (data.authenticated) {
-      isAuthenticated = true;
       // User is logged in
       showAuthenticatedUI();
     } else {
-      isAuthenticated = false;
       // User is guest
       showGuestModeUI();
     }
   } catch (error) {
     console.error('Auth check error:', error);
-    isAuthenticated = false;
     showGuestModeUI();
   }
 }
@@ -851,20 +435,12 @@ function showAuthenticatedUI() {
   if (guestModePrompt) guestModePrompt.style.display = 'none';
   if (loginLink) loginLink.style.display = 'none';
   if (signupLink) signupLink.style.display = 'none';
-  if (notificationBtn) notificationBtn.style.display = 'grid';
   if (logoutBtn) {
     logoutBtn.style.display = 'block';
-    logoutBtn.onclick = async () => {
+    logoutBtn.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/index.html';
-    };
-  }
-
-  if (!notificationsLoadedOnce) {
-    refreshNotifications().catch((error) => {
-      console.error('Initial notification load failed:', error);
     });
-    notificationsLoadedOnce = true;
   }
 }
 
@@ -874,8 +450,6 @@ function showGuestModeUI() {
   if (loginLink) loginLink.style.display = 'inline-block';
   if (signupLink) signupLink.style.display = 'inline-block';
   if (logoutBtn) logoutBtn.style.display = 'none';
-  if (notificationBtn) notificationBtn.style.display = 'none';
-  if (notificationPanel) notificationPanel.style.display = 'none';
 
   // Disable post creation for guests
   if (postBtn) {
@@ -886,22 +460,86 @@ function showGuestModeUI() {
 }
 
 checkAuthentication();
-setupFeedInteractions();
-setupNotificationInteractions();
+
+// ============================================
+// AGRICULTURAL NEWS
+// ============================================
+
+const newsList = document.getElementById('newsList');
+
+function getNewsIconForCategory(category) {
+  const icons = {
+    Weather: '☀️',
+    Market: '📊',
+    Tips: '💡',
+    Technology: '🤖',
+    'Pest Control': '🐛',
+    Irrigation: '💧',
+    Seeds: '🌱',
+    Government: '🏛️',
+  };
+  return icons[category] || '📰';
+}
+
+async function fetchAndDisplayNews() {
+  if (!newsList) return;
+
+  try {
+    const response = await fetch('/api/news?limit=5');
+    if (!response.ok) throw new Error('Failed to fetch news');
+
+    const newsData = await response.json();
+
+    if (newsData.length === 0) {
+      newsList.innerHTML = '<p style="text-align: center; color: #999;">No news available at the moment.</p>';
+      return;
+    }
+
+    newsList.innerHTML = newsData
+      .map((news) => {
+        const createdDate = new Date(news.createdAt);
+        const dateStr = createdDate.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        });
+        const icon = getNewsIconForCategory(news.category);
+
+        return `
+          <article class="news-card">
+            <div class="news-header">
+              <div class="news-icon">${icon}</div>
+              <div class="news-meta">
+                <div class="news-category">${escapeHtml(news.category)}</div>
+                <h3 class="news-title">${escapeHtml(news.title)}</h3>
+              </div>
+            </div>
+            <p class="news-excerpt">${escapeHtml(news.excerpt || '')}</p>
+            <div class="news-date">${dateStr} • ${escapeHtml(news.source || 'Khet-Khamar')}</div>
+          </article>
+        `;
+      })
+      .join('');
+  } catch (error) {
+    console.error('Failed to fetch news:', error);
+    newsList.innerHTML = '<p style="text-align: center; color: #999;">Unable to load news at the moment.</p>';
+  }
+}
+
+fetchAndDisplayNews();
 
 // Add translations for new strings
 dictionary.en.guestModeMsg = "You're browsing as a guest.";
 dictionary.en.loginToReact = "Login to post and react";
+dictionary.en.agricultureNews = "Agriculture News & Updates";
+dictionary.en.seeAll = "See All";
 dictionary.en.login = "Login";
 dictionary.en.signup = "Sign Up";
 dictionary.en.logout = "Logout";
-dictionary.en.notifications = "Notifications";
-dictionary.en.markAllRead = "Mark all read";
 
 dictionary.bn.guestModeMsg = "আপনি অতিথি হিসেবে ব্রাউজ করছেন।";
 dictionary.bn.loginToReact = "পোস্ট করতে এবং প্রতিক্রিয়া জানাতে লগইন করুন";
+dictionary.bn.agricultureNews = "কৃষি সংবাদ এবং আপডেট";
+dictionary.bn.seeAll = "সব দেখুন";
 dictionary.bn.login = "লগইন";
 dictionary.bn.signup = "সাইন আপ";
 dictionary.bn.logout = "লগ আউট";
-dictionary.bn.notifications = "নোটিফিকেশন";
-dictionary.bn.markAllRead = "সব পঠিত করুন";

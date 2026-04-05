@@ -83,26 +83,6 @@ async function seed() {
         location: 'Dhaka',
         verified: false,
       },
-      {
-        mobile: '01711223344',
-        email: 'rahim.farmer@khetkhamar.com',
-        name: 'Rahim Farmer',
-        password: 'rahim123',
-        role: 'Farmer',
-        language: 'bn',
-        location: 'Rajshahi',
-        verified: false,
-      },
-      {
-        mobile: '01755667788',
-        email: 'dr.samia@khetkhamar.com',
-        name: 'Dr. Samia Rahman',
-        password: 'expert123',
-        role: 'Verified Expert',
-        language: 'en',
-        location: 'Dhaka',
-        verified: true,
-      },
     ];
 
     const userIds = {};

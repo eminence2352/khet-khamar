@@ -26,10 +26,6 @@
       <button id="langToggle" class="lang-toggle" type="button" aria-label="Toggle language">
         বাংলা
       </button>
-      <button id="notificationBtn" class="notification-btn" type="button" aria-label="Notifications" style="display: none;">
-        <i class="fa-regular fa-bell"></i>
-        <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
-      </button>
       <div id="authLinks" class="auth-links">
         <a href="login.html" id="loginLink" class="auth-btn" data-i18n="login" style="display: none;">Login</a>
         <a href="signup.html" id="signupLink" class="auth-btn" data-i18n="signup" style="display: none;">Sign Up</a>
@@ -67,6 +63,15 @@
       </div>
     </section>
 
+    <!-- Agricultural News Section -->
+    <section id="newsSection" class="news-section" aria-label="Agricultural news">
+      <div class="section-header">
+        <h2 data-i18n="agricultureNews">Agriculture News & Updates</h2>
+        <a href="#" class="see-all" data-i18n="seeAll">See All</a>
+      </div>
+      <div id="newsList" class="news-list"></div>
+    </section>
+
     <!-- Social Feed -->
     <section class="feed-list" aria-label="Social feed"></section>
   </main>
@@ -87,7 +92,7 @@
       <i class="fa-solid fa-newspaper"></i>
       <span data-i18n="news">News</span>
     </a>
-    <a class="nav-item" href="profile.html" aria-label="Profile">
+    <a class="nav-item" href="#" aria-label="Profile">
       <i class="fa-solid fa-user"></i>
       <span data-i18n="profile">Profile</span>
     </a>
