@@ -255,6 +255,24 @@
       color: #84b179;
     }
 
+    .news-card-actions {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .share-home-btn {
+      border: 1px solid #84b179;
+      background: #f8ffef;
+      color: #3f6534;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     .news-source {
       font-weight: 500;
     }
@@ -409,7 +427,7 @@
       <i class="fa-solid fa-newspaper"></i>
       <span data-i18n="news">News</span>
     </a>
-    <a class="nav-item" href="#" aria-label="Profile">
+    <a class="nav-item" href="profile.html" aria-label="Profile">
       <i class="fa-solid fa-user"></i>
       <span data-i18n="profile">Profile</span>
     </a>
@@ -553,11 +571,50 @@
                     <span class="news-date">${date}</span>
                   </div>
                   ${readLink}
+                  <div class="news-card-actions">
+                    <button class="share-home-btn" data-share-news="${encodeURIComponent(JSON.stringify({ title: news.title, excerpt: news.excerpt || news.content || '', source: news.source || 'Agricultural News', url: news.url || '' }))}">
+                      <i class="fa-solid fa-share-nodes"></i> Share To Home
+                    </button>
+                  </div>
                 </div>
               </article>
             `;
           })
           .join('');
+
+        container.querySelectorAll('.share-home-btn').forEach((button) => {
+          button.addEventListener('click', async () => {
+            try {
+              const payload = JSON.parse(decodeURIComponent(button.dataset.shareNews || '%7B%7D'));
+              const authResponse = await fetch('/api/auth/check');
+              const authData = await authResponse.json();
+
+              if (!authData.authenticated) {
+                alert('Please login first to share news to home.');
+                window.location.href = '/login.html';
+                return;
+              }
+
+              const response = await fetch('/api/news/share', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to share news');
+              }
+
+              button.innerHTML = '<i class="fa-solid fa-check"></i> Shared';
+              button.disabled = true;
+            } catch (error) {
+              console.error(error);
+              alert('Could not share this news right now.');
+            }
+          });
+        });
       } catch (error) {
         console.error('News error:', error);
         container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1"><i class="fa-solid fa-triangle-exclamation"></i><p>Failed to load news</p></div>';

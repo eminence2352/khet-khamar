@@ -46,14 +46,89 @@ CREATE TABLE Comments (
     id INT PRIMARY KEY AUTO_INCREMENT,
     post_id INT NOT NULL,
     user_id INT NOT NULL,
+    parent_comment_id INT NULL,
     text_content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (post_id) REFERENCES Posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (parent_comment_id) REFERENCES Comments(id) ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_post_id (post_id),
     INDEX idx_user_id (user_id),
+    INDEX idx_parent_comment (parent_comment_id),
     INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Post_Likes Table: Tracks who liked which post
+CREATE TABLE Post_Likes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_post_user_like (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES Posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_post_like_post (post_id),
+    INDEX idx_post_like_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Notifications Table: Stores like/comment/reply notifications
+CREATE TABLE Notifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    recipient_user_id INT NOT NULL,
+    actor_user_id INT NOT NULL,
+    post_id INT NOT NULL,
+    comment_id INT NULL,
+    type VARCHAR(40) NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (recipient_user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (actor_user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (comment_id) REFERENCES Comments(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_notifications_recipient (recipient_user_id),
+    INDEX idx_notifications_post (post_id),
+    INDEX idx_notifications_read (is_read),
+    INDEX idx_notifications_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Krishi_Bonds Table: Mutual people connection graph
+CREATE TABLE Krishi_Bonds (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_low_id INT NOT NULL,
+    user_high_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_krishi_bond (user_low_id, user_high_id),
+    FOREIGN KEY (user_low_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (user_high_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_krishi_low (user_low_id),
+    INDEX idx_krishi_high (user_high_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Expert_Watch Table: Follows for specialist updates
+CREATE TABLE Expert_Watch (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    follower_user_id INT NOT NULL,
+    specialist_user_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_expert_watch (follower_user_id, specialist_user_id),
+    FOREIGN KEY (follower_user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (specialist_user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_watch_follower (follower_user_id),
+    INDEX idx_watch_specialist (specialist_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Saved_Posts Table: Personal saved posts for each user
+CREATE TABLE Saved_Posts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_saved_post (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES Posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_saved_post_post (post_id),
+    INDEX idx_saved_post_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Marketplace_Ads Table: Product listings from vendors with pricing and categorization
