@@ -1,0 +1,124 @@
+{
+  "project": {
+    "name": "khet-khamar-rebuild",
+    "repo_url": "",
+    "default_branch": "main",
+    "start_date": "2026-03-26",
+    "duration_days": 21,
+    "current_day": 1,
+    "status": "not-started"
+  },
+  "team": {
+    "A": {
+      "name": "",
+      "primary_scope": "Post composer and photo upload",
+      "secondary_scope": "UI polish and responsive fixes"
+    },
+    "B": {
+      "name": "",
+      "primary_scope": "Like comment nested comment and notifications",
+      "secondary_scope": "Backend validations and API consistency"
+    },
+    "C": {
+      "name": "",
+      "primary_scope": "Share save profile saved feed",
+      "secondary_scope": "QA test docs release checklist"
+    }
+  },
+  "workflow_rules": {
+    "branch_naming": "feature/<member>-<short-task>",
+    "commit_prefixes": [
+      "feat(A)",
+      "feat(B)",
+      "feat(C)",
+      "fix(A)",
+      "fix(B)",
+      "fix(C)",
+      "test(ALL)",
+      "docs(ALL)",
+      "chore(ALL)"
+    ],
+    "max_pr_size": "small",
+    "require_reviewer_count": 1,
+    "no_direct_push_to_main": true,
+    "daily_push_required": true,
+    "daily_log_issue_required": true
+  },
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "Week 1 Foundation",
+      "day_range": "1-7",
+      "status": "not-started"
+    },
+    {
+      "id": "M2",
+      "title": "Week 2 Features",
+      "day_range": "8-14",
+      "status": "not-started"
+    },
+    {
+      "id": "M3",
+      "title": "Week 3 Quality and Demo",
+      "day_range": "15-21",
+      "status": "not-started"
+    }
+  ],
+  "tracking": {
+    "targets_per_member": {
+      "commits": "18-24",
+      "prs": "10-14",
+      "reviews": "12-18"
+    },
+    "totals": {
+      "issues_open": 0,
+      "issues_closed": 0,
+      "prs_open": 0,
+      "prs_merged": 0,
+      "bugs_open": 0,
+      "bugs_closed": 0
+    }
+  },
+  "days": [
+    {
+      "day": 1,
+      "date": "",
+      "focus": "",
+      "tasks": {
+        "A": [],
+        "B": [],
+        "C": []
+      },
+      "deliverables": {
+        "A": [],
+        "B": [],
+        "C": []
+      },
+      "validation": {
+        "tested_by": [],
+        "test_notes": []
+      },
+      "github_activity": {
+        "issues": [],
+        "branches": [],
+        "commits": [],
+        "prs": [],
+        "reviews": []
+      },
+      "board_snapshot_ref": "",
+      "blockers": [],
+      "next_day_prep": []
+    }
+  ],
+  "chat_handoff": {
+    "latest_summary": "",
+    "last_completed_day": 0,
+    "in_progress_tasks": [],
+    "next_tasks": [],
+    "known_bugs": [],
+    "decisions": [],
+    "files_touched_recently": [],
+    "testing_state": "",
+    "what_i_want_copilot_to_do_next": ""
+  }
+}

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications - Khet-Khamar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .notifications-main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .notif-toolbar {
+      background: #f8ffef;
+      border: 1px solid var(--primary-base);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notif-toolbar h2 {
+      margin: 0;
+      font-size: 18px;
+      font-family: "Manrope", sans-serif;
+      color: var(--primary-dark);
+    }
+
+    .notif-mark-btn {
+      border: 1px solid var(--primary-base);
+      background: #fff;
+      color: var(--text-dark);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .notif-section {
+      background: #f8ffef;
+      border: 1px solid var(--primary-base);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .notif-section-title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #3f6534;
+      font-family: "Manrope", sans-serif;
+    }
+
+    .notif-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .notif-item {
+      border: 1px solid var(--primary-light);
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .notif-item.unread {
+      background: #eef7df;
+      border-color: var(--primary-dark);
+    }
+
+    .notif-text {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .notif-time {
+      margin: 5px 0 0;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .empty-state-simple {
+      margin: 0;
+      font-size: 13px;
+      opacity: 0.75;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-header">
+    <div class="logo-block">
+      <p class="logo-kicker">Farmer Community</p>
+      <h1 class="logo-title">Khet-Khamar</h1>
+    </div>
+    <a class="auth-btn" href="index.html">Back</a>
+  </header>
+
+  <main class="main-content notifications-main">
+    <section class="notif-toolbar">
+      <h2>Notifications</h2>
+      <button id="markAllRead" class="notif-mark-btn" type="button">Mark all read</button>
+    </section>
+
+    <section class="notif-section">
+      <h3 class="notif-section-title">Social</h3>
+      <div id="socialNotifList" class="notif-list"></div>
+    </section>
+
+    <section class="notif-section">
+      <h3 class="notif-section-title">Network & Updates</h3>
+      <div id="networkNotifList" class="notif-list"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <a class="nav-item" href="index.html" aria-label="Home">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="marketplace.html" aria-label="Marketplace">
+      <i class="fa-solid fa-store"></i>
+      <span>Market</span>
+    </a>
+    <a class="nav-item nav-post" href="index.html" aria-label="Create post">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+    <a class="nav-item" href="news.html" aria-label="News">
+      <i class="fa-solid fa-newspaper"></i>
+      <span>News</span>
+    </a>
+    <a class="nav-item" href="profile.html" aria-label="Profile">
+      <i class="fa-solid fa-user"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <script>
+    function formatRelativeTime(dateValue) {
+      const now = new Date();
+      const eventTime = new Date(dateValue);
+      const diffSeconds = Math.max(0, Math.floor((now - eventTime) / 1000));
+      if (diffSeconds < 60) return 'Just now';
+      const diffMinutes = Math.floor(diffSeconds / 60);
+      if (diffMinutes < 60) return `${diffMinutes} min ago`;
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) return `${diffHours} hrs ago`;
+      return `${Math.floor(diffHours / 24)} days ago`;
+    }
+
+    function notificationMessage(notification) {
+      const actor = notification.actorName || 'Someone';
+      const postText = (notification.postPreview || 'your post').slice(0, 70);
+
+      switch (notification.type) {
+        case 'like':
+          return `${actor} liked your post: "${postText}"`;
+        case 'comment':
+          return `${actor} commented on your post.`;
+        case 'reply':
+          return `${actor} replied to a comment thread.`;
+        case 'krishi_bond_post':
+          return `${actor} from your KrishiBond network posted something new.`;
+        case 'expert_watch_post':
+          return `${actor} from ExpertWatch posted a new update.`;
+        default:
+          return `${actor} sent a new update.`;
+      }
+    }
+
+    function renderList(targetEl, items) {
+      if (!targetEl) return;
+      if (!items || items.length === 0) {
+        targetEl.innerHTML = '<p class="empty-state-simple">No notifications in this category.</p>';
+        return;
+      }
+
+      targetEl.innerHTML = items.map((item) => `
+        <article class="notif-item ${item.isRead ? '' : 'unread'}">
+          <p class="notif-text">${notificationMessage(item)}</p>
+          <p class="notif-time">${formatRelativeTime(item.createdAt)}</p>
+        </article>
+      `).join('');
+    }
+
+    async function ensureLoggedIn() {
+      const response = await fetch('/api/auth/check');
+      const data = await response.json();
+      if (!data.authenticated) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      return true;
+    }
+
+    async function loadNotifications() {
+      const response = await fetch('/api/notifications?limit=60');
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+
+      const all = await response.json();
+      const social = all.filter((n) => ['like', 'comment', 'reply'].includes(n.type));
+      const network = all.filter((n) => !['like', 'comment', 'reply'].includes(n.type));
+
+      renderList(document.getElementById('socialNotifList'), social);
+      renderList(document.getElementById('networkNotifList'), network);
+    }
+
+    async function markAllRead() {
+      await fetch('/api/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      await loadNotifications();
+    }
+
+    document.getElementById('markAllRead').addEventListener('click', async () => {
+      try {
+        await markAllRead();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    (async () => {
+      const ok = await ensureLoggedIn();
+      if (!ok) return;
+      await loadNotifications();
+      await markAllRead();
+    })();
+  </script>
+</body>
+</html>

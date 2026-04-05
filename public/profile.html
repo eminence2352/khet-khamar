@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile - Khet-Khamar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .profile-main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .me-card,
+    .people-section {
+      background: #f8ffef;
+      border: 1px solid var(--primary-base);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .me-name {
+      margin: 0;
+      font-family: "Manrope", sans-serif;
+      font-size: 18px;
+    }
+
+    .me-meta {
+      margin: 6px 0 0;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    .count-row {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .count-pill {
+      background: #e8f5bd;
+      border: 1px solid var(--primary-light);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #3f6534;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-family: "Manrope", sans-serif;
+      font-size: 15px;
+      color: #3f6534;
+    }
+
+    .people-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .person-card {
+      background: #fff;
+      border: 1px solid var(--primary-light);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .person-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 10px;
+    }
+
+    .person-name {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .person-meta {
+      margin: 3px 0 0;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .person-bio {
+      margin: 8px 0 0;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .action-row {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .profile-action-btn {
+      border: 1px solid var(--primary-dark);
+      background: #fff;
+      color: #3f6534;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .profile-action-btn.active {
+      background: var(--primary-dark);
+      color: #fff;
+    }
+
+    .profile-posts-section {
+      background: #f8ffef;
+      border: 1px solid var(--primary-base);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .profile-posts-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .profile-post-card {
+      background: #fff;
+      border: 1px solid var(--primary-light);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .profile-post-meta {
+      margin: 0 0 6px;
+      font-size: 12px;
+      opacity: 0.72;
+    }
+
+    .profile-post-text {
+      margin: 0;
+      white-space: pre-wrap;
+      line-height: 1.35;
+      font-size: 14px;
+    }
+
+    .profile-post-image {
+      margin-top: 8px;
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--primary-light);
+    }
+
+    .empty-muted {
+      margin: 0;
+      font-size: 13px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <header class="top-header">
+    <div class="logo-block">
+      <p class="logo-kicker">Farmer Community</p>
+      <h1 class="logo-title">Khet-Khamar</h1>
+    </div>
+    <div class="header-actions">
+      <button id="langToggle" class="lang-toggle" type="button" aria-label="Toggle language">বাংলা</button>
+      <a class="auth-btn" href="notifications.html">Notifications</a>
+    </div>
+  </header>
+
+  <main class="main-content profile-main">
+    <section id="meCard" class="me-card"></section>
+
+    <section class="profile-posts-section">
+      <h2 class="section-title">My Posts</h2>
+      <div id="myPostsList" class="profile-posts-list"></div>
+    </section>
+
+    <section class="profile-posts-section">
+      <h2 class="section-title">Saved Posts</h2>
+      <div id="savedPostsList" class="profile-posts-list"></div>
+    </section>
+
+    <section class="people-section">
+      <h2 class="section-title">Specialists To ExpertWatch</h2>
+      <div id="specialistsGrid" class="people-grid"></div>
+    </section>
+
+    <section class="people-section">
+      <h2 class="section-title">Community To KrishiBond</h2>
+      <div id="communityGrid" class="people-grid"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <a class="nav-item" href="index.html" aria-label="Home">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="marketplace.html" aria-label="Marketplace">
+      <i class="fa-solid fa-store"></i>
+      <span>Market</span>
+    </a>
+    <a class="nav-item nav-post" href="index.html" aria-label="Create post">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+    <a class="nav-item" href="news.html" aria-label="News">
+      <i class="fa-solid fa-newspaper"></i>
+      <span>News</span>
+    </a>
+    <a class="nav-item active" href="profile.html" aria-label="Profile">
+      <i class="fa-solid fa-user"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <script>
+    let profileLang = 'en';
+
+    function ensureGoogleTranslateReady() {
+      if (!document.getElementById('google_translate_element')) {
+        const hiddenContainer = document.createElement('div');
+        hiddenContainer.id = 'google_translate_element';
+        hiddenContainer.style.position = 'fixed';
+        hiddenContainer.style.left = '-9999px';
+        hiddenContainer.style.top = '0';
+        document.body.appendChild(hiddenContainer);
+      }
+
+      window.googleTranslateElementInit = function googleTranslateElementInit() {
+        if (!window.google || !window.google.translate || !window.google.translate.TranslateElement) {
+          return;
+        }
+
+        new window.google.translate.TranslateElement(
+          {
+            pageLanguage: 'en',
+            includedLanguages: 'en,bn',
+            autoDisplay: false,
+          },
+          'google_translate_element'
+        );
+      };
+
+      const existingScript = document.querySelector('script[data-google-translate="true"]');
+      if (!existingScript) {
+        const scriptTag = document.createElement('script');
+        scriptTag.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        scriptTag.async = true;
+        scriptTag.dataset.googleTranslate = 'true';
+        document.body.appendChild(scriptTag);
+      }
+    }
+
+    function setGoogleTranslateLanguage(lang) {
+      const targetValue = lang === 'bn' ? 'bn' : '';
+      let attempts = 0;
+
+      function applyToCombo() {
+        const combo = document.querySelector('.goog-te-combo');
+        if (!combo) {
+          attempts += 1;
+          if (attempts < 15) {
+            setTimeout(applyToCombo, 200);
+          }
+          return;
+        }
+
+        combo.value = targetValue;
+        combo.dispatchEvent(new Event('change'));
+      }
+
+      ensureGoogleTranslateReady();
+      applyToCombo();
+    }
+
+    const langToggle = document.getElementById('langToggle');
+    if (langToggle) {
+      langToggle.addEventListener('click', () => {
+        profileLang = profileLang === 'en' ? 'bn' : 'en';
+        langToggle.textContent = profileLang === 'en' ? 'বাংলা' : 'English';
+        setGoogleTranslateLanguage(profileLang);
+      });
+    }
+
+    setGoogleTranslateLanguage('en');
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatRelativeTime(dateValue) {
+      const now = new Date();
+      const postTime = new Date(dateValue);
+      const diffSeconds = Math.max(0, Math.floor((now - postTime) / 1000));
+      if (diffSeconds < 60) return 'Just now';
+      const diffMinutes = Math.floor(diffSeconds / 60);
+      if (diffMinutes < 60) return `${diffMinutes} min ago`;
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) return `${diffHours} hrs ago`;
+      return `${Math.floor(diffHours / 24)} days ago`;
+    }
+
+    async function ensureLoggedIn() {
+      const response = await fetch('/api/auth/check');
+      const data = await response.json();
+      if (!data.authenticated) {
+        window.location.href = '/login.html';
+        return false;
+      }
+      return true;
+    }
+
+    function renderMe(data) {
+      const me = data.me;
+      document.getElementById('meCard').innerHTML = `
+        <h1 class="me-name">${escapeHtml(me.fullName)}</h1>
+        <p class="me-meta">${escapeHtml(me.role)} • ${escapeHtml(me.location || 'Unknown')}</p>
+        <div class="count-row">
+          <span class="count-pill">KrishiBond: ${Number(data.krishiBondCount) || 0}</span>
+          <span class="count-pill">ExpertWatch: ${Number(data.expertWatchCount) || 0}</span>
+        </div>
+      `;
+    }
+
+    function personCard(person, actionsHtml) {
+      return `
+        <article class="person-card">
+          <div class="person-top">
+            <div>
+              <p class="person-name">${escapeHtml(person.fullName)}</p>
+              <p class="person-meta">${escapeHtml(person.role)} • ${escapeHtml(person.location || 'Unknown')}</p>
+            </div>
+          </div>
+          <p class="person-bio">${escapeHtml(person.bio || 'No bio yet.')}</p>
+          <div class="action-row">${actionsHtml}</div>
+        </article>
+      `;
+    }
+
+    function renderPeople(discover) {
+      const specialistsHtml = discover.specialists
+        .map((person) => personCard(person, `<button class="profile-action-btn ${person.expertWatched ? 'active' : ''}" data-action="expert-watch" data-user-id="${person.id}">${person.expertWatched ? 'Watching' : 'ExpertWatch'}</button>`))
+        .join('');
+
+      const communityHtml = discover.community
+        .map((person) => personCard(person, `<button class="profile-action-btn ${person.bonded ? 'active' : ''}" data-action="krishi-bond" data-user-id="${person.id}">${person.bonded ? 'Bonded' : 'KrishiBond'}</button>`))
+        .join('');
+
+      document.getElementById('specialistsGrid').innerHTML = specialistsHtml || '<p class="person-meta">No specialists found.</p>';
+      document.getElementById('communityGrid').innerHTML = communityHtml || '<p class="person-meta">No people found.</p>';
+    }
+
+    function renderPostList(targetId, posts) {
+      const target = document.getElementById(targetId);
+      if (!target) return;
+
+      if (!Array.isArray(posts) || posts.length === 0) {
+        target.innerHTML = '<p class="empty-muted">No posts yet.</p>';
+        return;
+      }
+
+      target.innerHTML = posts.map((post) => {
+        const postText = escapeHtml(post.textContent || '');
+        const createdAt = formatRelativeTime(post.createdAt);
+        const userName = escapeHtml(post.userName || 'Unknown User');
+        const imageTag = post.imagePath
+          ? `<img class="profile-post-image" src="${escapeHtml(post.imagePath)}" alt="Post image" />`
+          : '';
+
+        return `
+          <article class="profile-post-card">
+            <p class="profile-post-meta">${userName} • ${createdAt}</p>
+            <p class="profile-post-text">${postText}</p>
+            ${imageTag}
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function loadProfilePosts() {
+      const [mineRes, savedRes] = await Promise.all([
+        fetch('/api/profile/posts?mode=mine'),
+        fetch('/api/profile/posts?mode=saved'),
+      ]);
+
+      if (!mineRes.ok || !savedRes.ok) {
+        throw new Error('Failed to fetch profile posts');
+      }
+
+      const mine = await mineRes.json();
+      const saved = await savedRes.json();
+
+      renderPostList('myPostsList', mine);
+      renderPostList('savedPostsList', saved);
+    }
+
+    async function refreshProfile() {
+      const [overviewRes, discoverRes] = await Promise.all([
+        fetch('/api/profile/overview'),
+        fetch('/api/profile/discover'),
+      ]);
+
+      if (!overviewRes.ok || !discoverRes.ok) {
+        throw new Error('Profile fetch failed');
+      }
+
+      const overview = await overviewRes.json();
+      const discover = await discoverRes.json();
+
+      renderMe(overview);
+      renderPeople(discover);
+      await loadProfilePosts();
+    }
+
+    document.addEventListener('click', async (event) => {
+      const btn = event.target.closest('.profile-action-btn');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      const userId = Number(btn.dataset.userId);
+      if (!Number.isInteger(userId) || userId <= 0) return;
+
+      try {
+        if (action === 'krishi-bond') {
+          await fetch(`/api/profile/krishi-bond/${userId}`, { method: 'POST' });
+        } else if (action === 'expert-watch') {
+          await fetch(`/api/profile/expert-watch/${userId}`, { method: 'POST' });
+        }
+        await refreshProfile();
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    (async () => {
+      const ok = await ensureLoggedIn();
+      if (!ok) return;
+      await refreshProfile();
+    })();
+  </script>
+</body>
+</html>
