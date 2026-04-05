@@ -1,0 +1,25 @@
+khet-khamar/
+|-- .env
+|-- .env.example
+|-- .gitignore
+|-- AUTH_PLAN.md
+|-- KHET-KHAMAR(30,108,110).pdf
+|-- MISSING_FEATURES.md
+|-- package.json
+|-- package-lock.json
+|-- schema.sql
+|-- seed.js
+|-- seed-news.js
+|-- seed-marketplace.js
+|-- server.js
+|-- setup-db.js
+|-- public/
+|   |-- index.html
+|   |-- login.html
+|   |-- signup.html
+|   |-- news.html
+|   |-- marketplace.html
+|   |-- script.js
+|   |-- style.css
+|   `-- uploads/
+`-- node_modules/ (local dependency folder, not for git)
