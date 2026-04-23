@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Khet-Khamar Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-lang="en">
+  <header class="top-header">
+    <div class="logo-block">
+      <p class="logo-kicker" data-i18n="appTagline">Farmer Community</p>
+      <h1 class="logo-title">Khet-Khamar</h1>
+    </div>
+    <div class="header-actions">
+      <div id="authLinks" class="auth-links">
+        <a href="login.html" id="loginLink" class="auth-btn" data-i18n="login" style="display: none;">Login</a>
+        <a href="signup.html" id="signupLink" class="auth-btn" data-i18n="signup" style="display: none;">Sign Up</a>
+        <button id="logoutBtn" class="auth-btn logout" data-i18n="logout" style="display: none;"></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Guest Login Prompt -->
+    <div id="guestModePrompt" class="guest-mode-banner" style="display: none;">
+      <p data-i18n="guestModeMsg">You're browsing as a guest. <a href="login.html" data-i18n="loginToReact">Login to post and react</a></p>
+    </div>
+
+    <!-- Post Creation Section (Hidden for guests) -->
+    <section id="createPostCard" class="create-post-card" aria-label="Create post section">
+      <div class="create-post-top">
+        <div class="avatar avatar-owner">AK</div>
+        <label class="post-input-wrap" for="postText">
+          <textarea
+            id="postText"
+            rows="2"
+            placeholder="Share your farming update..."
+            data-i18n-placeholder="sharePlaceholder"
+          ></textarea>
+        </label>
+      </div>
+      <div id="postImagePreviewWrap" class="composer-image-preview" hidden>
+        <img id="postImagePreview" class="composer-image-preview-img" alt="Selected image preview" />
+        <button id="removePostImage" class="composer-image-remove" type="button">Remove image</button>
+      </div>
+      <div class="create-post-actions">
+        <label for="postPhoto" class="camera-upload" data-i18n="addPhoto">
+          <i class="fa-solid fa-camera"></i>
+          Add Photo
+        </label>
+        <input id="postPhoto" type="file" accept="image/*" hidden />
+        <button class="post-btn" type="button" data-i18n="postBtn">Post</button>
+      </div>
+    </section>
+
+    <!-- Social Feed -->
+    <section class="feed-list" aria-label="Social feed"></section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <a class="nav-item active" href="index.html" aria-label="Home">
+      <i class="fa-solid fa-house"></i>
+      <span data-i18n="home">Home</span>
+    </a>
+    <a class="nav-item disabled-nav" href="#" aria-label="Marketplace" data-disabled-nav="true">
+      <i class="fa-solid fa-store"></i>
+      <span data-i18n="marketplace">Market</span>
+    </a>
+    <a class="nav-item nav-post" href="index.html?compose=1" aria-label="Create post">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+    <a class="nav-item disabled-nav" href="#" aria-label="News" data-disabled-nav="true">
+      <i class="fa-solid fa-newspaper"></i>
+      <span data-i18n="news">News</span>
+    </a>
+    <a class="nav-item disabled-nav" href="#" aria-label="Profile" data-disabled-nav="true">
+      <i class="fa-solid fa-user"></i>
+      <span data-i18n="profile">Profile</span>
+    </a>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>
