@@ -31,6 +31,7 @@ const DEMO_USERS = [
 
 const FEED_KEY = "kk_demo_feed_posts";
 const USER_KEY = "kk_demo_user";
+const MARKETPLACE_KEY = "kk_demo_market_items";
 
 const INITIAL_POSTS = [
   {
@@ -59,6 +60,75 @@ const INITIAL_POSTS = [
     image_url: "",
     likesCount: 9,
     commentsCount: 3,
+  },
+];
+
+const INITIAL_MARKET_ITEMS = [
+  {
+    id: 201,
+    title: "Hybrid Tomato Seeds (1kg)",
+    category: "Seeds",
+    location: "Gazipur",
+    price: 950,
+    sellerName: "Green Valley Agro",
+    phone: "01712000111",
+    rating: 4.7,
+    verified: true,
+  },
+  {
+    id: 202,
+    title: "Organic Vermicompost (50kg)",
+    category: "Fertilizer",
+    location: "Dhaka",
+    price: 1200,
+    sellerName: "Hasan Traders",
+    phone: "01713000222",
+    rating: 4.5,
+    verified: true,
+  },
+  {
+    id: 203,
+    title: "Portable Water Pump 2HP",
+    category: "Machinery",
+    location: "Rajshahi",
+    price: 8500,
+    sellerName: "Rafiq Machinery House",
+    phone: "01714000333",
+    rating: 4.3,
+    verified: false,
+  },
+  {
+    id: 204,
+    title: "Hand Sprayer 16L",
+    category: "Tools",
+    location: "Khulna",
+    price: 1450,
+    sellerName: "Agro Solution BD",
+    phone: "01715000444",
+    rating: 4.2,
+    verified: false,
+  },
+  {
+    id: 205,
+    title: "Dairy Cow (Healthy, 2 years)",
+    category: "Livestock",
+    location: "Mymensingh",
+    price: 78000,
+    sellerName: "Rural Livestock Center",
+    phone: "01716000555",
+    rating: 4.8,
+    verified: true,
+  },
+  {
+    id: 206,
+    title: "Urea Fertilizer (40kg Bag)",
+    category: "Fertilizer",
+    location: "Gazipur",
+    price: 1100,
+    sellerName: "Farm Input Point",
+    phone: "01717000666",
+    rating: 4.4,
+    verified: false,
   },
 ];
 
@@ -98,6 +168,20 @@ function savePosts(posts) {
   localStorage.setItem(FEED_KEY, JSON.stringify(posts));
 }
 
+function getMarketplaceItems() {
+  const existing = localStorage.getItem(MARKETPLACE_KEY);
+  if (existing) {
+    try {
+      return JSON.parse(existing);
+    } catch (_error) {
+      localStorage.removeItem(MARKETPLACE_KEY);
+    }
+  }
+
+  localStorage.setItem(MARKETPLACE_KEY, JSON.stringify(INITIAL_MARKET_ITEMS));
+  return [...INITIAL_MARKET_ITEMS];
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -114,6 +198,52 @@ function attachDisabledNavHandlers() {
       event.preventDefault();
     });
   });
+}
+
+function renderStars(rating) {
+  const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+  const fullStars = Math.round(safeRating);
+  return Array.from({ length: 5 }, (_, index) =>
+    index < fullStars ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>'
+  ).join("");
+}
+
+function renderMarketplaceItems(grid, items) {
+  if (!grid) return;
+
+  if (!items.length) {
+    grid.innerHTML = `<article class="market-card"><div class="market-body"><h3 class="market-title">No listing found</h3><p class="post-time">Try changing search or filter options.</p></div></article>`;
+    return;
+  }
+
+  grid.innerHTML = items
+    .map((item) => {
+      const verifiedTag = item.verified
+        ? `<span class="verified-badge"><i class="fa-solid fa-circle-check"></i> Verified</span>`
+        : "";
+
+      return `<article class="market-card">
+        <div class="market-image">
+          <i class="fa-solid fa-seedling"></i>
+          <span>${escapeHtml(item.category || "Product")}</span>
+        </div>
+        <div class="market-body">
+          <h3 class="market-title">${escapeHtml(item.title || "Untitled listing")}</h3>
+          <p class="market-price">৳${Number(item.price || 0).toLocaleString("en-BD")}</p>
+          <p class="post-time"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(item.location || "Unknown")}</p>
+          <p class="market-seller">
+            <i class="fa-solid fa-store"></i>
+            <span>${escapeHtml(item.sellerName || "Unknown Seller")}</span>
+            ${verifiedTag}
+          </p>
+          <div class="market-rating" aria-label="Rating ${escapeHtml(item.rating)} out of 5">
+            ${renderStars(item.rating)}
+          </div>
+          <a class="call-seller-btn" href="tel:${escapeHtml(item.phone || "")}"><i class="fa-solid fa-phone"></i> Call ${escapeHtml(item.phone || "Seller")}</a>
+        </div>
+      </article>`;
+    })
+    .join("");
 }
 
 function renderPosts(feedList, posts) {
@@ -301,5 +431,67 @@ function initFeedPage() {
   attachDisabledNavHandlers();
 }
 
+function initMarketplacePage() {
+  const marketGrid = document.getElementById("marketGrid");
+  if (!marketGrid) return;
+
+  const searchInput = document.getElementById("marketSearch");
+  const categorySelect = document.getElementById("marketCategory");
+  const locationSelect = document.getElementById("marketLocation");
+  const user = getUser();
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginLink = document.getElementById("loginLink");
+  const signupLink = document.getElementById("signupLink");
+
+  if (user) {
+    if (loginLink) loginLink.style.display = "none";
+    if (signupLink) signupLink.style.display = "none";
+    if (logoutBtn) {
+      logoutBtn.style.display = "inline-block";
+      logoutBtn.textContent = `Logout (${user.full_name})`;
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem(USER_KEY);
+        window.location.href = "login.html";
+      });
+    }
+  } else {
+    if (loginLink) loginLink.style.display = "inline-block";
+    if (signupLink) signupLink.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "none";
+  }
+
+  const allItems = getMarketplaceItems();
+
+  function refreshMarketplace() {
+    const query = String(searchInput?.value || "").trim().toLowerCase();
+    const category = String(categorySelect?.value || "all");
+    const location = String(locationSelect?.value || "all");
+
+    const filtered = allItems.filter((item) => {
+      const matchesQuery =
+        !query ||
+        String(item.title || "").toLowerCase().includes(query) ||
+        String(item.sellerName || "").toLowerCase().includes(query) ||
+        String(item.category || "").toLowerCase().includes(query);
+
+      const matchesCategory = category === "all" || item.category === category;
+      const matchesLocation = location === "all" || item.location === location;
+
+      return matchesQuery && matchesCategory && matchesLocation;
+    });
+
+    renderMarketplaceItems(marketGrid, filtered);
+  }
+
+  if (searchInput) searchInput.addEventListener("input", refreshMarketplace);
+  if (categorySelect) categorySelect.addEventListener("change", refreshMarketplace);
+  if (locationSelect) locationSelect.addEventListener("change", refreshMarketplace);
+
+  refreshMarketplace();
+  attachDisabledNavHandlers();
+}
+
 initLoginPage();
 initFeedPage();
+initMarketplacePage();

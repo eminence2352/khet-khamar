@@ -511,6 +511,10 @@ body {
 
 .call-seller-btn {
   margin-top: 0.72rem;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
   width: 100%;
   border: 1px solid var(--primary-dark);
   background: var(--primary-dark);
@@ -519,6 +523,7 @@ body {
   padding: 0.62rem 0.7rem;
   font-size: 0.9rem;
   font-weight: 700;
+  text-decoration: none;
 }
 
 @media (min-width: 720px) {
