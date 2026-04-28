@@ -1,0 +1,378 @@
+KHET-KHAMAR LOGIN, SIGNUP, AND ADMIN LOGIN
+(Code-flow style explanation)
+
+How to read this file:
+- HTML block collects data from the user
+- JS block sends the request
+- backend route checks and saves data
+- database stores or reads the record
+- response goes back to the frontend
+
+==================================================
+1) SIGNUP FLOW
+==================================================
+
+STEP 1 - HTML form collects signup data
+File: public/signup.html
+Code block:
+  <form class="auth-form" id="signupForm">
+
+What this block does:
+- shows the signup inputs
+- asks for full name, mobile number, email, district, password, and confirm password
+
+STEP 2 - JavaScript reads the form and validates it
+File: public/signup.html
+Code block:
+  const form = document.getElementById('signupForm');
+  form.addEventListener('submit', async (e) => { ... })
+
+What this block does:
+- stops the page from reloading
+- reads the values from the input fields
+- checks that all fields exist
+- checks that both passwords match
+- checks password length
+- shows an error message on the page if validation fails
+
+STEP 3 - JavaScript sends the signup request
+File: public/signup.html
+Code block:
+  const response = await fetch('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mobile_number,
+      email,
+      password,
+      full_name,
+      district_location,
+    }),
+  });
+
+What this block does:
+- sends the form data to the backend
+- sends the values as JSON
+- uses /api/auth/signup as the destination
+
+STEP 4 - Backend route receives the data
+File: src/routes/authRoutes.js
+Code block:
+  app.post('/api/auth/signup', async (req, res) => { ... })
+
+What this block does:
+- reads req.body
+- checks if any required field is missing
+- checks password length again on the server
+
+STEP 5 - Backend checks the database
+File: src/routes/authRoutes.js
+Code block:
+  const [existingUsers] = await db.query(
+    'SELECT id FROM users WHERE mobile_number = ? OR email = ? LIMIT 1',
+    [mobile_number, email]
+  );
+
+What this block does:
+- looks for an existing user with the same mobile number or email
+- prevents duplicate accounts
+
+STEP 6 - Backend stores the new user
+File: src/routes/authRoutes.js
+Code block:
+  const passwordHash = await bcrypt.hash(password, 10);
+  const [result] = await db.query(
+    `INSERT INTO users (mobile_number, email, password_hash, full_name, district_location)
+     VALUES (?, ?, ?, ?, ?)`,
+    [mobile_number, email, passwordHash, full_name, district_location]
+  );
+
+What this block does:
+- hashes the password before saving
+- inserts the new user into the users table
+- saves the hashed password, not the plain password
+
+STEP 7 - Backend starts the session and sends success
+File: src/routes/authRoutes.js
+Code block:
+  req.session.userId = userId;
+  req.session.authMode = 'user';
+  res.status(201).json({ ... });
+
+What this block does:
+- stores the new user id in the session
+- marks the session as a normal user session
+- sends success data back to the browser
+
+STEP 8 - Frontend shows success and redirects
+File: public/signup.html
+Code block:
+  successMessage.textContent = 'Account created successfully! Redirecting...';
+  setTimeout(() => {
+    window.location.href = '/index.html';
+  }, 1500);
+
+What this block does:
+- shows a success message
+- waits a moment
+- sends the user to the main feed page
+
+==================================================
+2) NORMAL LOGIN FLOW
+==================================================
+
+STEP 1 - HTML login form collects credentials
+File: public/login.html
+Code block:
+  <form class="auth-form" id="loginForm">
+
+What this block does:
+- shows the mobile number and password fields
+
+STEP 2 - JavaScript reads and submits login data
+File: public/login.html
+Code block:
+  const form = document.getElementById('loginForm');
+  form.addEventListener('submit', async (e) => { ... })
+
+What this block does:
+- stops page reload
+- reads the mobile number and password
+- clears old messages
+- sends the data to the backend
+
+STEP 3 - JavaScript sends the login request
+File: public/login.html
+Code block:
+  const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mobile_number, password }),
+  });
+
+What this block does:
+- sends the login form data to /api/auth/login
+
+STEP 4 - Backend receives the login request
+File: src/routes/authRoutes.js
+Code block:
+  app.post('/api/auth/login', async (req, res) => { ... })
+
+What this block does:
+- checks that both fields were sent
+- searches the users table by mobile number
+
+STEP 5 - Backend checks password
+File: src/routes/authRoutes.js
+Code block:
+  const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+What this block does:
+- compares the typed password with the hashed password in the database
+
+STEP 6 - Backend blocks admin from the normal login page
+File: src/routes/authRoutes.js
+Code block:
+  if (user.role === 'Admin') {
+    return res.status(403).json({ message: 'Admin must login from admin login page.' });
+  }
+
+What this block does:
+- prevents admin users from using the normal login form
+- forces admin login to happen on the admin page
+
+STEP 7 - Backend saves the session and returns success
+File: src/routes/authRoutes.js
+Code block:
+  req.session.userId = user.id;
+  req.session.authMode = 'user';
+  res.json({ message: 'Login successful', ... });
+
+What this block does:
+- stores the user id in the session
+- marks the session as a normal user session
+- sends success data back to the browser
+
+STEP 8 - Frontend redirects after login
+File: public/login.html
+Code block:
+  successMessage.textContent = 'Login successful! Redirecting...';
+  setTimeout(() => {
+    window.location.href = '/index.html';
+  }, 1500);
+
+What this block does:
+- shows success
+- sends the user to the feed page
+
+==================================================
+3) ADMIN LOGIN FLOW
+==================================================
+
+STEP 1 - HTML admin login form collects admin credentials
+File: public/admin-login.html
+Code block:
+  <form class="auth-form" id="adminLoginForm">
+
+What this block does:
+- shows a separate login page for admins
+
+STEP 2 - JavaScript sends admin login request
+File: public/admin-login.html
+Code block:
+  const form = document.getElementById("adminLoginForm");
+  form.addEventListener("submit", async (event) => { ... })
+
+What this block does:
+- stops page reload
+- reads admin credentials
+- sends them to the backend
+
+STEP 3 - Request goes to the admin login route
+File: public/admin-login.html
+Code block:
+  const response = await fetch("/api/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mobile_number, password }),
+  });
+
+What this block does:
+- sends the admin login data to /api/admin/login
+
+STEP 4 - Backend receives admin login
+File: src/routes/authRoutes.js
+Code block:
+  app.post('/api/admin/login', async (req, res) => { ... })
+
+What this block does:
+- checks that the user exists
+- checks that the role is Admin
+
+STEP 5 - Backend verifies the admin password
+File: src/routes/authRoutes.js
+Code block:
+  const passwordMatch = await bcrypt.compare(password, adminUser.password_hash);
+
+What this block does:
+- compares the typed admin password with the stored hash
+
+STEP 6 - Backend saves admin session and responds
+File: src/routes/authRoutes.js
+Code block:
+  req.session.userId = adminUser.id;
+  req.session.authMode = 'admin';
+  res.json({ message: 'Admin login successful', ... });
+
+What this block does:
+- stores the admin id in session
+- marks the session as admin mode
+- returns success to the browser
+
+STEP 7 - Frontend redirects to admin page
+File: public/admin-login.html
+Code block:
+  window.location.href = "admin.html";
+
+What this block does:
+- sends the admin to the dashboard
+
+==================================================
+4) WHO IS LOGGED IN FLOW
+==================================================
+
+STEP 1 - Frontend asks the backend if a session exists
+File: public/script.js
+Code block:
+  const response = await fetch("/api/auth/check");
+
+What this block does:
+- asks whether the current visitor is a guest, user, or admin
+
+STEP 2 - Backend answers with session state
+File: src/routes/authRoutes.js
+Code block:
+  app.get('/api/auth/check', (req, res) => { ... })
+
+What this block does:
+- says authenticated: false for guest
+- says mode: admin for admin session
+- says authenticated: true for normal user session
+
+STEP 3 - Frontend asks for full user data
+File: public/script.js
+Code block:
+  const response = await fetch("/api/auth/me");
+
+What this block does:
+- gets profile data for the logged-in user
+
+STEP 4 - Backend reads session user id and queries database
+File: src/routes/authRoutes.js
+Code block:
+  app.get('/api/auth/me', async (req, res) => { ... })
+
+What this block does:
+- reads the session user id
+- selects the user from the users table
+- returns the user data
+
+==================================================
+5) LOGOUT FLOW
+==================================================
+
+STEP 1 - Frontend calls logout route
+File: public/script.js and public/admin.html
+Code block:
+  await fetch("/api/auth/logout", { method: "POST" });
+
+What this block does:
+- tells the backend to end the current session
+
+STEP 2 - Backend destroys the session
+File: src/routes/authRoutes.js
+Code block:
+  app.post('/api/auth/logout', (req, res) => { ... })
+
+What this block does:
+- clears the session data
+- removes login state
+
+STEP 3 - Frontend returns to login state
+File: public/script.js and public/admin.html
+What happens next:
+- the user becomes a guest again
+- login and signup buttons can show again
+
+==================================================
+6) QUICK CODE MAP
+==================================================
+
+Signup:
+- public/signup.html -> form -> fetch('/api/auth/signup')
+- src/routes/authRoutes.js -> app.post('/api/auth/signup')
+
+Normal login:
+- public/login.html -> form -> fetch('/api/auth/login')
+- src/routes/authRoutes.js -> app.post('/api/auth/login')
+
+Admin login:
+- public/admin-login.html -> form -> fetch('/api/admin/login')
+- src/routes/authRoutes.js -> app.post('/api/admin/login')
+
+Session check:
+- public/script.js -> fetch('/api/auth/check')
+- src/routes/authRoutes.js -> app.get('/api/auth/check')
+
+User profile lookup:
+- public/script.js -> fetch('/api/auth/me')
+- src/routes/authRoutes.js -> app.get('/api/auth/me')
+
+Logout:
+- public/script.js / public/admin.html -> fetch('/api/auth/logout')
+- src/routes/authRoutes.js -> app.post('/api/auth/logout')
+
+==================================================
+7) ONE-LINE FLOW
+==================================================
+- HTML collects the form data, JavaScript sends it to the auth route, the route checks the database and session, then the response comes back to the frontend.

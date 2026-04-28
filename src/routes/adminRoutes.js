@@ -1,10 +1,13 @@
+// This file registers all admin-only API endpoints (user/role management, moderation)
 function registerAdminRoutes(app, {
   db,
   requireAdmin,
   desiredAdminRoleToDbRole,
 }) {
+  // ENDPOINT 1: GET /api/admin/role-requests - Fetch all pending and completed role change requests
   app.get('/api/admin/role-requests', requireAdmin, async (req, res) => {
     try {
+      // Get all role requests with user details, sorted by pending first, then by creation date
       const [rows] = await db.query(
         `SELECT
           r.id,
@@ -29,8 +32,12 @@ function registerAdminRoutes(app, {
     }
   });
 
+  // ENDPOINT 2: POST /api/admin/role-requests/:requestId/respond - Admin accepts or rejects a role change request
+  // Uses transactions to ensure consistency when updating user role
   app.post('/api/admin/role-requests/:requestId/respond', requireAdmin, async (req, res) => {
+    // Parse and validate the request ID
     const requestId = Number.parseInt(req.params.requestId, 10);
+    // Get the admin's action: "accept" or "reject"
     const action = String(req.body.action || '').trim().toLowerCase();
 
     if (!Number.isInteger(requestId) || requestId <= 0) {
@@ -41,10 +48,13 @@ function registerAdminRoutes(app, {
       return res.status(400).json({ message: 'Action must be accept or reject.' });
     }
 
+    // Get a dedicated connection for transaction support
     const connection = await db.getConnection();
     try {
+      // Start transaction to ensure all changes are atomic
       await connection.beginTransaction();
 
+      // Check if the request exists and is still pending
       const [requestRows] = await connection.query(
         `SELECT id, user_id, desired_role
          FROM role_change_requests
@@ -60,6 +70,7 @@ function registerAdminRoutes(app, {
 
       const requestRow = requestRows[0];
 
+      // If rejecting, just mark the request as rejected
       if (action === 'reject') {
         await connection.query(
           `UPDATE role_change_requests
@@ -71,6 +82,7 @@ function registerAdminRoutes(app, {
         return res.json({ message: 'Role request rejected.' });
       }
 
+      // If accepting, update the user's role in the users table
       await connection.query(
         `UPDATE users
          SET role = ?, is_verified = CASE WHEN ? = 'Verified Expert' THEN 1 ELSE 0 END

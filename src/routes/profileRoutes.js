@@ -1,3 +1,4 @@
+// This file registers all profile-related API endpoints (profiles, connections, follows)
 function registerProfileRoutes(app, {
   db,
   requireAuth,
@@ -5,13 +6,16 @@ function registerProfileRoutes(app, {
   normalizeConnectionPair,
   isExpertRole,
 }) {
+  // ENDPOINT 1: GET /api/profiles/:userId - Fetch a user's profile with stats
   app.get('/api/profiles/:userId', async (req, res) => {
+    // Parse and validate the user ID from URL
     const targetUserId = Number.parseInt(req.params.userId, 10);
     if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
       return res.status(400).json({ message: 'Invalid profile user id.' });
     }
 
     try {
+      // Fetch the profile data with post count, connections count, followers, following counts
       const [profileRows] = await db.query(
         `SELECT
           u.id,

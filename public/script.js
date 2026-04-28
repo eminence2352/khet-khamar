@@ -1,6 +1,7 @@
 // ============================================
 // LANGUAGE + UI TEXT
 // ============================================
+// Dictionary for multilingual UI text (currently English only)
 const dictionary = {
   en: {
     appTagline: "Farmer Community",
@@ -23,10 +24,12 @@ const dictionary = {
   },
 };
 
+// Select all DOM elements that need translation
 const body = document.body;
 const translatableNodes = document.querySelectorAll("[data-i18n]");
 const translatablePlaceholders = document.querySelectorAll("[data-i18n-placeholder]");
 
+// Apply English text to all translatable elements on page load
 function applyEnglishLanguage() {
   body.dataset.lang = "en";
 
@@ -52,16 +55,22 @@ applyEnglishLanguage();
 // ============================================
 // AUTH STATE + SHARED HELPERS
 // ============================================
+// Global object to track current user authentication status
 const authState = {
-  checked: false,
-  authenticated: false,
-  userId: null,
+  checked: false, // Whether we've already fetched auth status from server
+  authenticated: false, // Whether user is currently logged in
+  userId: null, // The logged-in user's ID (if authenticated)
 };
 
+// Store the current user's profile data (fetched from /api/auth/me)
 let currentUserProfile = null;
 
+// FUNCTION: showNotice() - Display custom in-page notification to user
+// Replaces browser alert() with styled, auto-dismissing notifications
+// Types: "info" (default), "success" (green), "error" (red)
 function showNotice(message, type = "info") {
   const text = String(message || "Something went wrong.").trim() || "Something went wrong.";
+  // Find or create the notification container
   let host = document.getElementById("appNoticeHost");
 
   if (!host) {
@@ -71,22 +80,26 @@ function showNotice(message, type = "info") {
     document.body.appendChild(host);
   }
 
-  host.innerHTML = "";
+  host.innerHTML = ""; // Clear any previous notifications
 
+  // Create the notification element
   const notice = document.createElement("div");
   notice.className = `app-notice app-notice-${type}`;
   notice.setAttribute("role", type === "error" ? "alert" : "status");
   notice.setAttribute("aria-live", type === "error" ? "assertive" : "polite");
 
+  // Add message text
   const textNode = document.createElement("p");
   textNode.className = "app-notice-text";
   textNode.textContent = text;
 
+  // Add close button
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";
   closeBtn.className = "app-notice-close";
   closeBtn.textContent = "OK";
 
+  // Function to dismiss the notification with animation
   const dismiss = () => {
     notice.classList.remove("show");
     window.setTimeout(() => {
@@ -98,18 +111,25 @@ function showNotice(message, type = "info") {
 
   closeBtn.addEventListener("click", dismiss);
 
+  // Assemble notification
   notice.appendChild(textNode);
   notice.appendChild(closeBtn);
   host.appendChild(notice);
 
+  // Trigger CSS animation
   window.requestAnimationFrame(() => {
     notice.classList.add("show");
   });
 
+  // Auto-dismiss after delay (4.2s for errors, 2.8s for success/info)
   window.setTimeout(dismiss, type === "error" ? 4200 : 2800);
 }
 
+// FUNCTION: getAuthState() - Fetch and cache authentication status from server
+// Makes /api/auth/check request to determine if user is logged in
+// Caches result unless forceRefresh is true
 async function getAuthState(forceRefresh = false) {
+  // Return cached auth state if already fetched and not forcing refresh
   if (authState.checked && !forceRefresh) {
     return authState;
   }
@@ -130,6 +150,9 @@ async function getAuthState(forceRefresh = false) {
   return authState;
 }
 
+// FUNCTION: getCurrentUserProfile() - Fetch current user's full profile from /api/auth/me
+// Only works if user is authenticated
+// Caches result unless forceRefresh is true
 async function getCurrentUserProfile(forceRefresh = false) {
   const state = await getAuthState(forceRefresh);
   if (!state.authenticated) {
@@ -137,6 +160,7 @@ async function getCurrentUserProfile(forceRefresh = false) {
     return null;
   }
 
+  // Return cached profile if already fetched and not forcing refresh
   if (currentUserProfile && !forceRefresh) {
     return currentUserProfile;
   }
@@ -156,6 +180,7 @@ async function getCurrentUserProfile(forceRefresh = false) {
   }
 }
 
+// FUNCTION: escapeHtml() - Escape HTML special characters to prevent injection
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -165,20 +190,23 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// FUNCTION: getAvatarInitials() - Generate 2-letter avatar initials from name
 function getAvatarInitials(name) {
   const safeName = String(name || "Anonymous User").trim();
   const parts = safeName.split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
-    return "AU";
+    return "AU"; // Fallback for Anonymous User
   }
 
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
   }
 
+  // Take first letter of first name + first letter of last name
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// FUNCTION: formatRelativeTime() - Convert timestamp to relative time text (e.g., "5 minutes ago")
 function formatRelativeTime(dateValue) {
   const now = new Date();
   const postTime = new Date(dateValue);
@@ -202,14 +230,17 @@ function formatRelativeTime(dateValue) {
   return `${diffDays} days ago`;
 }
 
+// FUNCTION: profileUrlForUser() - Generate URL to visit a user's profile page
 function profileUrlForUser(userId) {
   return `profile.html?userId=${encodeURIComponent(userId)}`;
 }
 
+// FUNCTION: feedPostUrl() - Generate URL to view a specific post on the feed
 function feedPostUrl(postId) {
   return `index.html?postId=${encodeURIComponent(postId)}`;
 }
 
+// FUNCTION: formatRoleLabel() - Convert database role to display label (e.g., "Verified Expert" -> "Expert")
 function formatRoleLabel(role) {
   const normalized = String(role || "").trim().toLowerCase();
   if (normalized === "verified expert") {
@@ -221,16 +252,20 @@ function formatRoleLabel(role) {
   return role || "User";
 }
 
+// FUNCTION: renderPosts() - Generate HTML for feed posts and insert into container
+// Handles different post types (regular, news shares) with like/comment buttons
 function renderPosts(posts, container) {
   if (!container) {
     return;
   }
 
+  // Show "No posts" message if empty
   if (!Array.isArray(posts) || posts.length === 0) {
     container.innerHTML = '<article class="post-card"><p class="post-text">No posts yet.</p></article>';
     return;
   }
 
+  // Check if current user is admin (can moderate posts)
   const canAdminModerate = currentUserProfile && currentUserProfile.role === "Admin";
 
   container.innerHTML = posts

@@ -1,30 +1,39 @@
+// Import bcryptjs for password hashing
 const bcrypt = require('bcryptjs');
 
+// This file registers all settings-related API endpoints (password changes, role requests)
 function registerSettingsRoutes(app, { db, requireAuth, desiredRoleToDbRole }) {
+  // ENDPOINT 1: POST /api/settings/change-password - Change user's password
   app.post('/api/settings/change-password', requireAuth, async (req, res) => {
+    // Get current and new password from request body
     const currentPassword = String(req.body.currentPassword || '');
     const newPassword = String(req.body.newPassword || '');
 
+    // Both passwords are required
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Current and new password are required.' });
     }
 
+    // New password must be at least 6 characters
     if (newPassword.length < 6) {
       return res.status(400).json({ message: 'New password must be at least 6 characters.' });
     }
 
     try {
+      // Fetch the user's current password hash from database
       const [rows] = await db.query('SELECT id, password_hash FROM users WHERE id = ? LIMIT 1', [req.session.userId]);
 
       if (rows.length === 0) {
         return res.status(404).json({ message: 'User not found.' });
       }
 
+      // Verify the current password matches what's in the database
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, rows[0].password_hash);
       if (!isCurrentPasswordValid) {
         return res.status(401).json({ message: 'Current password is incorrect.' });
       }
 
+      // Hash the new password and update the database
       const newPasswordHash = await bcrypt.hash(newPassword, 10);
       await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, req.session.userId]);
 
