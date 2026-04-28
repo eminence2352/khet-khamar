@@ -21,10 +21,6 @@ const dictionary = {
     login: "Login",
     signup: "Sign Up",
     logout: "Logout",
-    notifications: "Notifications",
-    markAllRead: "Mark all read",
-    noNotifications: "No notifications yet.",
-    openNotifications: "Open notifications",
   },
 };
 
@@ -55,7 +51,6 @@ function applyEnglishLanguage() {
 }
 
 applyEnglishLanguage();
-initNotificationCenter();
 
 // ============================================
 // AUTH STATE + SHARED HELPERS
@@ -69,15 +64,6 @@ const authState = {
 
 // Store the current user's profile data (fetched from /api/auth/me)
 let currentUserProfile = null;
-
-let notificationCenterState = {
-  initialized: false,
-  open: false,
-  loaded: false,
-  loading: false,
-  unreadCount: 0,
-  notifications: [],
-};
 
 // FUNCTION: showNotice() - Display custom in-page notification to user
 // Replaces browser alert() with styled, auto-dismissing notifications
@@ -242,294 +228,6 @@ function formatRelativeTime(dateValue) {
 
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} days ago`;
-}
-
-function formatNotificationMessage(notification) {
-  const actorName = escapeHtml(notification.actorName || "Someone");
-  if (notification.notificationType === "comment") {
-    return `${actorName} commented on your post`;
-  }
-
-  if (notification.notificationType === "like") {
-    return `${actorName} liked your post`;
-  }
-
-  return `${actorName} sent you a notification`;
-}
-
-function getNotificationPreview(notification) {
-  const previewText = notification.notificationType === "comment"
-    ? notification.commentText || notification.postText || ""
-    : notification.postText || "";
-
-  return String(previewText || "").trim();
-}
-
-function getNotificationLink(notification) {
-  return feedPostUrl(notification.postId);
-}
-
-function renderNotificationItem(notification) {
-  const message = formatNotificationMessage(notification);
-  const preview = getNotificationPreview(notification);
-  const timeText = formatRelativeTime(notification.createdAt);
-  const avatarInitials = escapeHtml(getAvatarInitials(notification.actorName || "Someone"));
-  const unreadClass = notification.isRead ? "" : " unread";
-
-  return `
-    <button type="button" class="notification-item${unreadClass}" data-notification-id="${Number(notification.id) || 0}" data-post-id="${Number(notification.postId) || 0}">
-      <div class="notification-avatar">${avatarInitials}</div>
-      <div class="notification-copy">
-        <p class="notification-message">${message}</p>
-        ${preview ? `<p class="notification-preview">${escapeHtml(preview)}</p>` : ""}
-        <p class="notification-time">${timeText}</p>
-      </div>
-    </button>
-  `;
-}
-
-function updateNotificationBadge(badgeEl) {
-  if (!badgeEl) {
-    return;
-  }
-
-  const unreadCount = Number(notificationCenterState.unreadCount) || 0;
-  if (unreadCount > 0) {
-    badgeEl.hidden = false;
-    badgeEl.textContent = unreadCount > 9 ? "9+" : String(unreadCount);
-  } else {
-    badgeEl.hidden = true;
-    badgeEl.textContent = "";
-  }
-}
-
-function renderNotificationPanel(listEl) {
-  if (!listEl) {
-    return;
-  }
-
-  if (!Array.isArray(notificationCenterState.notifications) || notificationCenterState.notifications.length === 0) {
-    listEl.innerHTML = `<p class="notification-empty">${dictionary.en.noNotifications}</p>`;
-    return;
-  }
-
-  listEl.innerHTML = notificationCenterState.notifications.map((notification) => renderNotificationItem(notification)).join("");
-}
-
-async function fetchNotifications({ forceRefresh = false } = {}) {
-  const state = await getAuthState(forceRefresh);
-  if (!state.authenticated) {
-    notificationCenterState.notifications = [];
-    notificationCenterState.unreadCount = 0;
-    notificationCenterState.loaded = true;
-    return notificationCenterState;
-  }
-
-  if (notificationCenterState.loading) {
-    return notificationCenterState;
-  }
-
-  if (notificationCenterState.loaded && !forceRefresh) {
-    return notificationCenterState;
-  }
-
-  notificationCenterState.loading = true;
-  try {
-    const response = await fetch("/api/notifications?limit=10");
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to load notifications.");
-    }
-
-    notificationCenterState.notifications = Array.isArray(data.notifications) ? data.notifications : [];
-    notificationCenterState.unreadCount = Number(data.unreadCount) || 0;
-    notificationCenterState.loaded = true;
-  } catch (error) {
-    console.error("Notification load error:", error);
-    notificationCenterState.notifications = [];
-    notificationCenterState.unreadCount = 0;
-  } finally {
-    notificationCenterState.loading = false;
-  }
-
-  return notificationCenterState;
-}
-
-async function markNotificationRead(notificationId) {
-  if (!Number.isInteger(notificationId) || notificationId <= 0) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`/api/notifications/${notificationId}/read`, {
-      method: "POST",
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      return;
-    }
-
-    notificationCenterState.unreadCount = Number(data.unreadCount) || 0;
-  } catch (error) {
-    console.error("Failed to mark notification as read:", error);
-  }
-}
-
-async function markAllNotificationsRead() {
-  try {
-    const response = await fetch("/api/notifications/read-all", {
-      method: "POST",
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      showNotice(data.message || "Failed to update notifications.", "error");
-      return;
-    }
-
-    notificationCenterState.unreadCount = 0;
-    notificationCenterState.notifications = notificationCenterState.notifications.map((notification) => ({
-      ...notification,
-      isRead: true,
-    }));
-  } catch (error) {
-    console.error("Failed to mark notifications read:", error);
-    showNotice("Failed to update notifications.", "error");
-  }
-}
-
-function setNotificationPanelOpen(panelEl, toggleButton, isOpen) {
-  if (!panelEl || !toggleButton) {
-    return;
-  }
-
-  notificationCenterState.open = isOpen;
-  panelEl.hidden = !isOpen;
-  toggleButton.setAttribute("aria-expanded", String(isOpen));
-}
-
-function initNotificationCenter() {
-  if (notificationCenterState.initialized) {
-    return;
-  }
-
-  const host = document.createElement("div");
-  host.id = "notificationCenterHost";
-  host.className = "notification-center-host";
-  host.innerHTML = `
-    <button type="button" class="notification-toggle" aria-label="${dictionary.en.openNotifications}" aria-expanded="false">
-      <i class="fa-solid fa-bell"></i>
-      <span class="notification-badge" hidden>0</span>
-    </button>
-    <section class="notification-panel" hidden aria-label="${dictionary.en.notifications}">
-      <header class="notification-panel-header">
-        <div>
-          <h2>${dictionary.en.notifications}</h2>
-          <p>Likes and comments on your posts</p>
-        </div>
-        <button type="button" class="notification-mark-all">${dictionary.en.markAllRead}</button>
-      </header>
-      <div class="notification-list"></div>
-    </section>
-  `;
-  document.body.appendChild(host);
-
-  const toggleButton = host.querySelector(".notification-toggle");
-  const panelEl = host.querySelector(".notification-panel");
-  const listEl = host.querySelector(".notification-list");
-  const badgeEl = host.querySelector(".notification-badge");
-  const markAllBtn = host.querySelector(".notification-mark-all");
-
-  const syncPanel = async () => {
-    const state = await getAuthState();
-    host.style.display = state.authenticated ? "block" : "none";
-
-    if (!state.authenticated) {
-      setNotificationPanelOpen(panelEl, toggleButton, false);
-      notificationCenterState.notifications = [];
-      notificationCenterState.unreadCount = 0;
-      renderNotificationPanel(listEl);
-      updateNotificationBadge(badgeEl);
-      return;
-    }
-
-    await fetchNotifications({ forceRefresh: true });
-    renderNotificationPanel(listEl);
-    updateNotificationBadge(badgeEl);
-  };
-
-  toggleButton.addEventListener("click", async () => {
-    const state = await getAuthState();
-    if (!state.authenticated) {
-      window.location.href = "/login.html";
-      return;
-    }
-
-    const shouldOpen = panelEl.hidden;
-    setNotificationPanelOpen(panelEl, toggleButton, shouldOpen);
-
-    if (shouldOpen) {
-      await fetchNotifications({ forceRefresh: true });
-      renderNotificationPanel(listEl);
-      updateNotificationBadge(badgeEl);
-    }
-  });
-
-  markAllBtn.addEventListener("click", async (event) => {
-    event.stopPropagation();
-    await markAllNotificationsRead();
-    renderNotificationPanel(listEl);
-    updateNotificationBadge(badgeEl);
-  });
-
-  listEl.addEventListener("click", async (event) => {
-    const notificationButton = event.target.closest(".notification-item");
-    if (!notificationButton) {
-      return;
-    }
-
-    const notificationId = Number.parseInt(notificationButton.dataset.notificationId, 10);
-    const postId = Number.parseInt(notificationButton.dataset.postId, 10);
-    await markNotificationRead(notificationId);
-    updateNotificationBadge(badgeEl);
-
-    if (notificationCenterState.open) {
-      notificationCenterState.notifications = notificationCenterState.notifications.map((notification) => (
-        Number(notification.id) === notificationId ? { ...notification, isRead: true } : notification
-      ));
-      renderNotificationPanel(listEl);
-    }
-
-    if (Number.isInteger(postId) && postId > 0) {
-      window.location.href = getNotificationLink({ postId });
-    }
-  });
-
-  document.addEventListener("click", (event) => {
-    if (!notificationCenterState.open) {
-      return;
-    }
-
-    if (host.contains(event.target)) {
-      return;
-    }
-
-    setNotificationPanelOpen(panelEl, toggleButton, false);
-  });
-
-  syncPanel();
-  window.setInterval(() => {
-    if (notificationCenterState.open) {
-      fetchNotifications({ forceRefresh: true }).then(() => {
-        renderNotificationPanel(listEl);
-        updateNotificationBadge(badgeEl);
-      });
-      return;
-    }
-
-    fetchNotifications({ forceRefresh: true }).then(() => updateNotificationBadge(badgeEl));
-  }, 30000);
-
-  notificationCenterState.initialized = true;
 }
 
 // FUNCTION: profileUrlForUser() - Generate URL to visit a user's profile page
@@ -1036,12 +734,6 @@ function initFeedPage() {
 
     const commentButton = event.target.closest(".js-comment-btn");
     if (commentButton) {
-      const state = await getAuthState();
-      if (!state.authenticated) {
-        window.location.href = "/login.html";
-        return;
-      }
-
       const postId = Number.parseInt(commentButton.dataset.postId, 10);
       if (!Number.isInteger(postId) || postId <= 0) {
         return;

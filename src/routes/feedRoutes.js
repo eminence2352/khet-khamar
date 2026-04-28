@@ -108,7 +108,7 @@ function registerFeedRoutes(app, { db, upload, requireAuth }) {
 
       // Check if the post exists and is active
       const [postRows] = await connection.query(
-        'SELECT id, user_id FROM posts WHERE id = ? AND is_active = TRUE LIMIT 1',
+        'SELECT id FROM posts WHERE id = ? AND is_active = TRUE LIMIT 1',
         [postId]
       );
 
@@ -134,15 +134,6 @@ function registerFeedRoutes(app, { db, upload, requireAuth }) {
       // If not yet liked, add the like (toggle to like)
       await connection.query('INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)', [postId, userId]);
       await connection.query('UPDATE posts SET likes_count = likes_count + 1 WHERE id = ?', [postId]);
-
-      const postOwnerId = Number(postRows[0].user_id);
-      if (Number.isInteger(postOwnerId) && postOwnerId > 0 && postOwnerId !== userId) {
-        await connection.query(
-          `INSERT INTO notifications (recipient_id, actor_id, notification_type, post_id)
-           VALUES (?, ?, 'like', ?)`,
-          [postOwnerId, userId, postId]
-        );
-      }
 
       // Commit all changes atomically
       await connection.commit();
@@ -211,43 +202,25 @@ function registerFeedRoutes(app, { db, upload, requireAuth }) {
       return res.status(400).json({ message: 'Comment text is required.' });
     }
 
-    const connection = await db.getConnection();
     try {
-      await connection.beginTransaction();
-
       // Verify the post exists and is active
-      const [postRows] = await connection.query('SELECT id, user_id FROM posts WHERE id = ? AND is_active = TRUE LIMIT 1', [postId]);
+      const [postRows] = await db.query('SELECT id FROM posts WHERE id = ? AND is_active = TRUE LIMIT 1', [postId]);
       if (postRows.length === 0) {
-        await connection.rollback();
         return res.status(404).json({ message: 'Post not found.' });
       }
 
       // Insert the comment into the database
-      const [result] = await connection.query(
+      const [result] = await db.query(
         `INSERT INTO comments (post_id, user_id, text_content)
          VALUES (?, ?, ?)`,
         [postId, userId, textContent]
       );
 
-      const postOwnerId = Number(postRows[0].user_id);
-      if (Number.isInteger(postOwnerId) && postOwnerId > 0 && postOwnerId !== userId) {
-        await connection.query(
-          `INSERT INTO notifications (recipient_id, actor_id, notification_type, post_id, comment_id)
-           VALUES (?, ?, 'comment', ?, ?)`,
-          [postOwnerId, userId, postId, result.insertId]
-        );
-      }
-
-      await connection.commit();
-
       // Return success with the new comment ID
       res.status(201).json({ message: 'Comment added.', commentId: result.insertId });
     } catch (error) {
-      await connection.rollback();
       console.error('Failed to add comment:', error.message);
       res.status(500).json({ message: 'Failed to add comment' });
-    } finally {
-      connection.release();
     }
   });
 }
