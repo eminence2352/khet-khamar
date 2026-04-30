@@ -1,0 +1,309 @@
+KHET-KHAMAR NOTIFICATION, COMMENT, AND SHARE FLOW
+(Code-flow style explanation)
+
+How to read this file:
+- HTML or JS event block starts the action
+- frontend sends fetch() or prompt() output
+- backend route checks and saves data
+- response returns to the frontend
+- notice shows success or error
+
+==================================================
+1) NOTIFICATION FLOW
+==================================================
+
+STEP 1 - A page action needs feedback
+File: public/script.js
+What triggers it:
+- failed login-like actions
+- failed comment actions
+- failed image validation
+- success messages like password change or role request
+
+STEP 2 - The notice function creates the popup
+File: public/script.js
+Code block:
+  function showNotice(message, type = "info") { ... }
+
+What this block does:
+- creates a notice container if it does not exist
+- builds a message box inside the page
+- changes the style based on info, success, or error
+- adds an OK button
+- removes the notice after a short delay
+
+STEP 3 - The style comes from CSS
+File: public/style.css
+What it uses:
+- app-notice rules
+- app-notice-host rules
+
+What this block does:
+- controls the look, position, spacing, and animation of the notice
+
+STEP 4 - The page shows the message
+File: public/script.js
+Code path:
+- the action calls showNotice("message", "error") or showNotice("message", "success")
+
+What this does:
+- shows the custom in-page notice instead of a browser alert
+
+==================================================
+2) COMMENT FLOW
+==================================================
+
+STEP 1 - Feed post rendering creates the comment button
+File: public/script.js
+Code block:
+  <button type="button" class="js-comment-btn" data-post-id="${safePostId}">
+
+What this block does:
+- shows the Comment button on each post card
+- stores the post id in data-post-id
+
+STEP 2 - The feed click handler catches the click
+File: public/script.js
+Code block:
+  feedList.addEventListener("click", async (event) => { ... })
+
+What this block does:
+- listens for clicks on feed actions
+- checks whether the click came from .js-comment-btn
+
+STEP 3 - Frontend checks login first
+File: public/script.js
+Code block:
+  const state = await getAuthState();
+  if (!state.authenticated) {
+    window.location.href = "/login.html";
+    return;
+  }
+
+What this block does:
+- prevents guests from commenting
+- sends unauthenticated users to login
+
+STEP 4 - Frontend asks for the comment text
+File: public/script.js
+Code block:
+  const commentText = window.prompt("Write your comment:");
+
+What this block does:
+- opens a small prompt box
+- collects the comment text from the user
+
+STEP 5 - Frontend validates the comment text
+File: public/script.js
+Code block:
+  const trimmedComment = String(commentText).trim();
+  if (!trimmedComment) {
+    showNotice("Comment cannot be empty.", "error");
+    return;
+  }
+
+What this block does:
+- stops empty comments
+- shows a notice if the field is blank
+
+STEP 6 - Frontend sends the comment to the backend
+File: public/script.js
+Code block:
+  const response = await fetch(`/api/posts/${postId}/comments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ textContent: trimmedComment }),
+  });
+
+What this block does:
+- sends the post id and comment text to the backend
+
+STEP 7 - Backend receives the comment
+File: src/routes/feedRoutes.js
+Code block:
+  app.post('/api/posts/:postId/comments', requireAuth, async (req, res) => { ... })
+
+What this block does:
+- reads the post id from the URL
+- reads the comment text from req.body
+- requires login before continuing
+
+STEP 8 - Backend checks the post and comment text
+File: src/routes/feedRoutes.js
+Code blocks:
+  if (!Number.isInteger(postId) || postId <= 0) { ... }
+  if (!textContent) { ... }
+  const [postRows] = await db.query('SELECT id FROM posts WHERE id = ? AND is_active = TRUE LIMIT 1', [postId]);
+
+What these blocks do:
+- make sure the post id is valid
+- make sure the comment is not empty
+- make sure the post still exists and is active
+
+STEP 9 - Backend saves the comment
+File: src/routes/feedRoutes.js
+Code block:
+  const [result] = await db.query(
+    `INSERT INTO comments (post_id, user_id, text_content)
+     VALUES (?, ?, ?)`,
+    [postId, userId, textContent]
+  );
+
+What this block does:
+- inserts the new comment into the comments table
+
+STEP 10 - Backend responds and frontend refreshes
+File: src/routes/feedRoutes.js and public/script.js
+Code blocks:
+  res.status(201).json({ message: 'Comment added.', commentId: result.insertId });
+  await fetchPosts({ container: feedList, targetPostId: postId });
+
+What this does:
+- sends success back to the browser
+- refreshes the feed so the comment count updates
+
+==================================================
+3) SHARE FLOW
+==================================================
+
+Important note:
+- The project has two share-related flows.
+- One is the real news share to feed.
+- One is the share icon shown in feed post cards.
+
+A) Real share-to-feed flow from the news page
+
+STEP 1 - HTML shows the share button on each news card
+File: public/news.html
+Code block:
+  class="news-share-btn"
+
+What this block does:
+- adds a Share to Feed button on the news page
+
+STEP 2 - News page click handler catches the button
+File: public/news.html
+Code block:
+  const button = event.target.closest('.news-share-btn');
+
+What this block does:
+- detects which news item the user clicked
+
+STEP 3 - Frontend checks login first
+File: public/news.html
+Code block:
+  const authResponse = await fetch('/api/auth/check');
+
+What this block does:
+- checks whether the user is logged in before sharing
+
+STEP 4 - Frontend builds the share payload
+File: public/news.html
+Code block:
+  const payload = {
+    title,
+    excerpt,
+    url,
+    source,
+    category,
+  };
+
+What this block does:
+- collects the news information from the button data
+
+STEP 5 - Frontend sends the share request
+File: public/news.html
+Code block:
+  const shareResponse = await fetch('/api/news/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+What this block does:
+- sends the shared news data to the backend
+
+STEP 6 - Backend receives the share request
+File: src/routes/newsRoutes.js
+Code block:
+  app.post('/api/news/share', requireAuth, async (req, res) => { ... })
+
+What this block does:
+- requires login
+- reads the shared news fields from the request body
+
+STEP 7 - Backend saves the shared news post
+File: src/routes/newsRoutes.js
+Code block:
+  const [result] = await db.query(
+    `INSERT INTO posts
+       (user_id, post_type, text_content, shared_news_title, shared_news_excerpt, shared_news_url, shared_news_source, shared_news_category)
+     VALUES (?, 'news_share', ?, ?, ?, ?, ?, ?)`,
+    [...]
+  );
+
+What this block does:
+- creates a new post in the posts table
+- marks it as news_share
+- stores the shared news details
+
+STEP 8 - Backend responds
+File: src/routes/newsRoutes.js
+Code block:
+  res.status(201).json({ message: 'News shared to feed.', postId: result.insertId });
+
+What this block does:
+- tells the frontend the share was successful
+
+STEP 9 - Feed rendering shows the shared news post
+File: public/script.js
+Code block:
+  if (post.postType === "news_share") { ... }
+
+What this block does:
+- displays the title, excerpt, source, category, and link for shared news
+
+B) Share icon in the normal feed cards
+
+STEP 1 - Feed rendering shows the share button
+File: public/script.js
+Code block:
+  <button type="button"><i class="fa-solid fa-share-nodes"></i> <span>${dictionary.en.share}</span></button>
+
+What this block does:
+- places a share-looking button in the post footer
+
+STEP 2 - Current behavior
+What the code shows now:
+- the button is rendered
+- no separate click handler is attached to that exact feed share button yet
+
+What this means:
+- the button is visual only at the moment
+- the working share feature is the news page Share to Feed flow
+
+==================================================
+4) QUICK CODE MAP
+==================================================
+
+Notifications:
+- public/script.js -> showNotice(message, type)
+- public/style.css -> app-notice styles
+
+Comments:
+- public/script.js -> .js-comment-btn click handler
+- src/routes/feedRoutes.js -> app.post('/api/posts/:postId/comments')
+
+News share to feed:
+- public/news.html -> .news-share-btn click handler
+- src/routes/newsRoutes.js -> app.post('/api/news/share')
+- public/script.js -> postType === "news_share" renderer
+
+Feed share icon:
+- public/script.js -> share button rendered in the post footer
+- currently no handler for that exact button
+
+==================================================
+5) ONE-LINE FLOW
+==================================================
+- The frontend starts the action, the backend route stores or checks the data in the database, and the frontend updates by showing a notice or reloading the feed.
