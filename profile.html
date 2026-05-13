@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile - Khet-Khamar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Matched fonts from index.html -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-lang="en">
+  <header class="top-header">
+    <div class="logo-block">
+      <p class="logo-kicker">Farmer Community</p>
+      <h1 class="logo-title">Khet-Khamar</h1>
+    </div>
+    <!-- Matched header actions from index.html -->
+    <div class="header-actions">
+      <div id="authLinks" class="auth-links">
+        <a href="login.html" id="loginLink" class="auth-btn" style="display: none;">Login</a>
+        <a href="signup.html" id="signupLink" class="auth-btn" style="display: none;">Sign Up</a>
+        <button id="logoutBtn" class="auth-btn logout" style="display: none;">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="profilePage" class="main-content profile-main">
+    <section id="profileCard" class="profile-card" aria-label="Profile summary">
+      <!-- Injected via JS -->
+    </section>
+
+    <section id="profileActions" class="profile-actions" aria-label="Profile actions"></section>
+
+    <!-- Logout for profile owner -->
+    <div id="profileLogoutWrap" style="display:none; text-align: center; margin-top: 1rem; margin-bottom: 2rem;">
+      <button id="profileLogoutBtn" class="action-btn secondary" style="width: 100%;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+    </div>
+
+    <section class="profile-panel" aria-label="Profile posts">
+      <div class="section-header compact">
+        <h2>My Posts</h2>
+      </div>
+      <div id="profilePosts" class="feed-list">
+        <!-- Injected via JS -->
+      </div>
+    </section>
+
+    <!-- Hidden advanced panels for future features -->
+    <section id="connectionRequestsPanel" class="profile-panel" style="display: none;" aria-label="Connection requests"></section>
+    <section id="connectionsPanel" class="profile-panel" style="display: none;" aria-label="Connections list"></section>
+    <section id="sellerReviewsPanel" class="profile-panel" style="display: none;" aria-label="Seller reviews"></section>
+    <section id="adminToolsPanel" class="profile-panel" style="display: none;" aria-label="Admin tools"></section>
+    <section id="likedPostsPanel" class="profile-panel" style="display: none;" aria-label="Liked posts"></section>
+    <section id="commentedPostsPanel" class="profile-panel" style="display: none;" aria-label="Commented posts"></section>
+  </main>
+
+  <!-- Bottom Navigation matching index.html -->
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <a class="nav-item" href="index.html" aria-label="Home">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="marketplace.html" aria-label="Marketplace">
+      <i class="fa-solid fa-store"></i>
+      <span>Market</span>
+    </a>
+    <a class="nav-item nav-post" href="index.html?compose=1" aria-label="Create post">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+    <a class="nav-item" href="news.html" aria-label="News">
+      <i class="fa-solid fa-newspaper"></i>
+      <span>News</span>
+    </a>
+    <!-- Profile is now the active tab -->
+    <a class="nav-item active" href="profile.html" aria-label="Profile">
+      <i class="fa-solid fa-user"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <script src="script.js"></script>
+</body>
+</html>

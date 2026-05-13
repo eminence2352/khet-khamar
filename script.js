@@ -189,7 +189,8 @@ function initLoginPage() {
 
 function initFeedPage() {
   const feedList = document.querySelector(".feed-list");
-  if (!feedList) return; 
+  const createPostCard = document.getElementById("createPostCard");
+  if (!feedList || !createPostCard) return; // Only run on homepage where post creation exists
 
   const user = getUser();
   const composerAvatar = document.querySelector(".avatar-owner");
@@ -378,6 +379,79 @@ function initMarketplacePage() {
   renderAds();
 }
 
+function initProfilePage() {
+  const profileCard = document.getElementById("profileCard");
+  const profileLogoutWrap = document.getElementById("profileLogoutWrap");
+  const profileLogoutBtn = document.getElementById("profileLogoutBtn");
+  const profilePostsList = document.getElementById("profilePosts");
+
+  if (!profileCard) return; // Exit if not on profile page
+
+  const user = getUser();
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  // 1. Render Profile Card
+  const initials = getInitials(user.full_name);
+  
+  // Calculate dynamic stats
+  const allPosts = getPosts();
+  const userPosts = allPosts.filter(p => p.authorName === user.full_name);
+  
+  profileCard.innerHTML = `
+    <div class="profile-avatar-large">${initials}</div>
+    <h2 class="profile-name">${escapeHtml(user.full_name)}</h2>
+    <span class="profile-role-badge">${escapeHtml(user.role)}</span>
+    <div class="profile-stats">
+      <div class="stat-item">
+        <span class="stat-value">${userPosts.length}</span>
+        <span class="stat-label">Posts</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">${user.mobile_number.slice(-3)}</span> <!-- Dummy stat based on mobile -->
+        <span class="stat-label">Connections</span>
+      </div>
+    </div>
+  `;
+
+  // 2. Render User's Own Posts
+  if (userPosts.length === 0) {
+    profilePostsList.innerHTML = `<p style="text-align:center; color: #718096; padding: 20px;">You haven't posted anything yet.</p>`;
+  } else {
+    profilePostsList.innerHTML = userPosts.map((post, index) => {
+      const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
+      const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
+
+      return `<article class="post-card">
+        <div class="post-head">
+          <div class="avatar ${avatarClass}">${initials}</div>
+          <div class="post-user-meta">
+            <p class="post-user">${escapeHtml(post.authorName)}</p>
+            <p class="post-time">${escapeHtml(post.created_at)}</p>
+          </div>
+        </div>
+        <p class="post-text">${escapeHtml(post.text_content || "")}</p>
+        ${imageMarkup}
+        <div class="post-actions">
+          <button type="button"><i class="fa-regular fa-heart"></i> Like ${Number(post.likesCount) || 0}</button>
+          <button type="button"><i class="fa-regular fa-comment"></i> Comment ${Number(post.commentsCount) || 0}</button>
+        </div>
+      </article>`;
+    }).join("");
+  }
+
+  // 3. Handle Logout
+  if (profileLogoutWrap && profileLogoutBtn) {
+    profileLogoutWrap.style.display = "block";
+    profileLogoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(USER_KEY);
+      window.location.href = "login.html";
+    });
+  }
+}
+
 // ==========================================
 // 5. EXECUTION SEQUENCE
 // ==========================================
@@ -385,4 +459,115 @@ initGlobalAuth();
 initLoginPage();
 initFeedPage();
 initMarketplacePage();
+initProfilePage();
 attachDisabledNavHandlers();
+function initProfilePage() {
+  const profileCard = document.getElementById("profileCard");
+  const profileActions = document.getElementById("profileActions");
+  const profileLogoutWrap = document.getElementById("profileLogoutWrap");
+  const profileLogoutBtn = document.getElementById("profileLogoutBtn");
+  const profilePostsList = document.getElementById("profilePosts");
+  const adminToolsPanel = document.getElementById("adminToolsPanel");
+
+  if (!profileCard) return; // Exit if not on profile page
+
+  const user = getUser();
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  // 1. Render Profile Card
+  const initials = getInitials(user.full_name);
+  const allPosts = getPosts();
+  const userPosts = allPosts.filter(p => p.authorName === user.full_name);
+  
+  // Using the image's exact structure
+  profileCard.innerHTML = `
+    <div class="profile-header-row">
+      <div class="profile-avatar-new">${initials}</div>
+      <div class="profile-info-new">
+        <h2 class="profile-name-new">${escapeHtml(user.full_name)}</h2>
+        <p class="profile-role-new">${escapeHtml(user.role)} &bull; Dhaka</p>
+      </div>
+    </div>
+    <p class="profile-bio-new">No bio yet.</p>
+    <div class="profile-stats-grid">
+      <div class="stat-box">
+        <span class="stat-num">${userPosts.length}</span>
+        <span class="stat-text">Posts</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">7</span>
+        <span class="stat-text">Connections</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">0</span>
+        <span class="stat-text">Followers</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num">0</span>
+        <span class="stat-text">Following</span>
+      </div>
+    </div>
+  `;
+
+  // 2. Render Action Buttons (Matching the Pill Design)
+  if (profileActions) {
+    profileActions.innerHTML = `
+      <button id="editProfileBtn" class="pill-btn primary">Edit Profile</button>
+      <button id="viewConnectionsBtn" class="pill-btn secondary">View Connections</button>
+      <button id="requestRoleBtn" class="pill-btn secondary">Request Role</button>
+    `;
+
+    document.getElementById("editProfileBtn").addEventListener("click", () => alert("Edit Profile feature coming soon!"));
+    document.getElementById("viewConnectionsBtn").addEventListener("click", () => alert("Connections view coming soon!"));
+    document.getElementById("requestRoleBtn").addEventListener("click", () => alert("Role request sent!"));
+  }
+
+  // 3. Render User's Own Posts
+  if (userPosts.length === 0) {
+    profilePostsList.innerHTML = `<p style="text-align:center; color: #718096; padding: 20px;">You haven't posted anything yet.</p>`;
+  } else {
+    profilePostsList.innerHTML = userPosts.map((post, index) => {
+      const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
+      const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
+
+      return `<article class="post-card">
+        <div class="post-head">
+          <div class="avatar ${avatarClass}">${initials}</div>
+          <div class="post-user-meta">
+            <p class="post-user">${escapeHtml(post.authorName)}</p>
+            <p class="post-time">${escapeHtml(post.created_at)}</p>
+          </div>
+        </div>
+        <p class="post-text">${escapeHtml(post.text_content || "")}</p>
+        ${imageMarkup}
+        <div class="post-actions">
+          <button type="button" onclick="alert('Liked!')"><i class="fa-regular fa-heart"></i> Like ${Number(post.likesCount) || 0}</button>
+          <button type="button"><i class="fa-regular fa-comment"></i> Comment ${Number(post.commentsCount) || 0}</button>
+        </div>
+      </article>`;
+    }).join("");
+  }
+
+  // 4. Handle Admin Tools
+  if (user.role === "Admin" && adminToolsPanel) {
+    adminToolsPanel.style.display = "block";
+  }
+
+  // 5. Handle Logout
+  if (profileLogoutWrap && profileLogoutBtn) {
+    profileLogoutWrap.style.display = "flex";
+    profileLogoutWrap.style.justifyContent = "flex-start"; // Align left like the image
+    profileLogoutBtn.className = "pill-btn secondary logout-pill"; // Update class to match pills
+    
+    // Remove old icon if it exists and just use text
+    profileLogoutBtn.innerHTML = "Logout"; 
+
+    profileLogoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(USER_KEY);
+      window.location.href = "login.html";
+    });
+  }
+}
