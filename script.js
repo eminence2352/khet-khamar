@@ -145,6 +145,37 @@ function renderPosts(feedList, posts) {
     .join("");
 }
 
+// NEW: Extracted Auth Logic so it works on all pages
+function initGlobalAuth() {
+  const user = getUser();
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginLink = document.getElementById("loginLink");
+  const signupLink = document.getElementById("signupLink");
+  const guestModePrompt = document.getElementById("guestModePrompt");
+
+  // Only run this if we aren't on the login page itself
+  if (document.getElementById("loginForm")) return;
+
+  if (user) {
+    if (loginLink) loginLink.style.display = "none";
+    if (signupLink) signupLink.style.display = "none";
+    if (guestModePrompt) guestModePrompt.style.display = "none";
+    
+    if (logoutBtn) {
+      logoutBtn.style.display = "inline-block";
+      logoutBtn.textContent = `Logout (${user.full_name})`;
+      logoutBtn.addEventListener("click", () => {
+        localStorage.removeItem(USER_KEY);
+        window.location.href = "login.html";
+      });
+    }
+  } else {
+    // If not logged in, you can decide to redirect or show guest UI
+    // For now, we will redirect non-logged in users to login page
+    window.location.href = "login.html";
+  }
+}
+
 function initLoginPage() {
   const form = document.getElementById("loginForm");
   if (!form) return;
@@ -198,18 +229,9 @@ function initLoginPage() {
 
 function initFeedPage() {
   const feedList = document.querySelector(".feed-list");
-  if (!feedList) return;
+  if (!feedList) return; // Exit if not on index.html
 
   const user = getUser();
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  const logoutBtn = document.getElementById("logoutBtn");
-  const loginLink = document.getElementById("loginLink");
-  const signupLink = document.getElementById("signupLink");
-  const guestModePrompt = document.getElementById("guestModePrompt");
   const composerAvatar = document.querySelector(".avatar-owner");
   const postTextInput = document.getElementById("postText");
   const postBtn = document.querySelector(".post-btn");
@@ -218,20 +240,7 @@ function initFeedPage() {
   const postImagePreview = document.getElementById("postImagePreview");
   const removePostImageBtn = document.getElementById("removePostImage");
 
-  if (loginLink) loginLink.style.display = "none";
-  if (signupLink) signupLink.style.display = "none";
-  if (guestModePrompt) guestModePrompt.style.display = "none";
-
-  if (logoutBtn) {
-    logoutBtn.style.display = "inline-block";
-    logoutBtn.textContent = `Logout (${user.full_name})`;
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem(USER_KEY);
-      window.location.href = "login.html";
-    });
-  }
-
-  if (composerAvatar) {
+  if (composerAvatar && user) {
     composerAvatar.textContent = getInitials(user.full_name);
   }
 
@@ -298,8 +307,24 @@ function initFeedPage() {
   }
 
   refreshFeed();
-  attachDisabledNavHandlers();
 }
 
+// NEW: Basic initialization for the marketplace to prevent default behaviors
+function initMarketplacePage() {
+  const marketSubmitBtn = document.querySelector(".marketplace-form .submit-btn");
+  
+  if (marketSubmitBtn) {
+    marketSubmitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      // In the future, you will add the code here to save the product to local storage
+      alert("Product posting feature coming soon!"); 
+    });
+  }
+}
+
+// Execution Sequence
+initGlobalAuth();
 initLoginPage();
 initFeedPage();
+initMarketplacePage();
+attachDisabledNavHandlers();
