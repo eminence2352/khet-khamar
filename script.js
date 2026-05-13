@@ -1,21 +1,41 @@
 // ==========================================
 // 1. DUMMY DATA & CONSTANTS
 // ==========================================
-const FEED_KEY = "kk_demo_feed_posts";
+// ==========================================
+// 1. DUMMY DATA & CONSTANTS
+// ==========================================
+const FEED_KEY = "kk_demo_feed_v2"; // Updated to force fresh feed load
 const USER_KEY = "kk_demo_user";
-const MARKET_KEY = "kk_demo_market_v2"; // Updated to force fresh data load
+const MARKET_KEY = "kk_demo_market_v2";
 
 const DEMO_USERS = [
   { id: 1, mobile_number: "01700000001", password: "password123", full_name: "Rahim Uddin", role: "Farmer" },
   { id: 2, mobile_number: "01700000002", password: "expert123", full_name: "Dr. Nusrat Rahman", role: "Verified Expert" },
   { id: 3, mobile_number: "01700000003", password: "seller123", full_name: "Hasan Traders", role: "General Vendor" },
   { id: 4, mobile_number: "01700000004", password: "admin123", full_name: "System Admin", role: "Admin" },
+  { id: 5, mobile_number: "01700000005", password: "jalal123", full_name: "Jalal Mia", role: "Farmer" },
+  { id: 6, mobile_number: "01700000006", password: "shirin123", full_name: "Shirin Akter", role: "Farmer" },
+  { id: 7, mobile_number: "01700000007", password: "kabir123", full_name: "Kabir Agro Mart", role: "General Vendor" },
+  { id: 8, mobile_number: "01700000008", password: "rokeya123", full_name: "Rokeya Seed House", role: "General Vendor" },
+  { id: 9, mobile_number: "01700000009", password: "aminul123", full_name: "Aminul Haque", role: "Verified Expert" },
+  { id: 10, mobile_number: "01700000010", password: "tania123", full_name: "Tania Sultana", role: "Verified Expert" },
+  { id: 11, mobile_number: "01700000011", password: "nahid123", full_name: "Nahid Hasan", role: "Farmer" },
+  { id: 12, mobile_number: "01700000012", password: "rima123", full_name: "Rima Khatun", role: "Farmer" },
 ];
 
 const INITIAL_POSTS = [
-  { id: 101, authorName: "Rahim Uddin", created_at: "2 hours ago", text_content: "Planted winter tomato seeds today. Weather looks stable for the next week.", image_url: "", likesCount: 6, commentsCount: 2 },
-  { id: 102, authorName: "Dr. Nusrat Rahman", created_at: "5 hours ago", text_content: "Keep irrigation light after transplanting. Too much water now can stress roots.", image_url: "", likesCount: 14, commentsCount: 5 },
-  { id: 103, authorName: "Hasan Traders", created_at: "1 day ago", text_content: "New organic compost stock arrived. Delivery available in Gazipur and Dhaka.", image_url: "", likesCount: 9, commentsCount: 3 },
+  { id: 101, authorName: "Jalal Mia", created_at: "10 mins ago", text_content: "Prepared raised beds for okra today. Soil moisture is stable.", image_url: "", likesCount: 12, commentsCount: 3 },
+  { id: 102, authorName: "Rahim Uddin", created_at: "1 hour ago", text_content: "Irrigated the paddy field early morning to reduce evaporation loss.", image_url: "", likesCount: 8, commentsCount: 1 },
+  { id: 103, authorName: "Shirin Akter", created_at: "2 hours ago", text_content: "Started compost tea application for chili plants this week.", image_url: "", likesCount: 15, commentsCount: 4 },
+  { id: 104, authorName: "Nahid Hasan", created_at: "3 hours ago", text_content: "Neem oil spray helped reduce leaf curl in my brinjal plot.", image_url: "", likesCount: 22, commentsCount: 6 },
+  { id: 105, authorName: "Rima Khatun", created_at: "5 hours ago", text_content: "Transplanted tomato seedlings and added organic mulch.", image_url: "", likesCount: 9, commentsCount: 2 },
+  { id: 106, authorName: "Kabir Agro Mart", created_at: "1 day ago", text_content: "Received a fresh stock of certified rice seeds in my shop.", image_url: "", likesCount: 34, commentsCount: 8 },
+  { id: 107, authorName: "Dr. Nusrat Rahman", created_at: "1 day ago", text_content: "Weather looks cloudy, planning light irrigation only.", image_url: "", likesCount: 45, commentsCount: 12 },
+  { id: 108, authorName: "Aminul Haque", created_at: "2 days ago", text_content: "Tested drip line pressure. Uniform flow is much better now.", image_url: "", likesCount: 18, commentsCount: 3 },
+  { id: 109, authorName: "Tania Sultana", created_at: "2 days ago", text_content: "Applied balanced NPK before flowering stage as advised.", image_url: "", likesCount: 27, commentsCount: 5 },
+  { id: 110, authorName: "Jalal Mia", created_at: "3 days ago", text_content: "Field scouting found early pest signs, taking preventive measures.", image_url: "", likesCount: 14, commentsCount: 2 },
+  { id: 111, authorName: "Rokeya Seed House", created_at: "3 days ago", text_content: "Seed germination rate is excellent this season.", image_url: "", likesCount: 11, commentsCount: 1 },
+  { id: 112, authorName: "Rahim Uddin", created_at: "4 days ago", text_content: "Using pheromone traps reduced insect pressure significantly.", image_url: "", likesCount: 31, commentsCount: 7 },
 ];
 
 const INITIAL_MARKET_ADS = [
@@ -26,7 +46,10 @@ const INITIAL_MARKET_ADS = [
   { id: 205, vendorName: "System Admin", product_title: "Diesel Hand Pump", description: "Heavy duty 1.5HP with 5m hose", price: 8500, category: "Equipment", location: "Dhaka", quantity: 15, unit: "piece" },
   { id: 206, vendorName: "System Admin", product_title: "Agricultural Hose (50m)", description: "3-ply rubber, UV resistant", price: 1200, category: "Tools", location: "Dhaka", quantity: 40, unit: "roll" },
   { id: 207, vendorName: "Hasan Traders", product_title: "Urea Fertilizer (50kg)", description: "Nitrogen rich for vegetative growth", price: 1800, category: "Fertilizer", location: "Gazipur", quantity: 150, unit: "bag" },
-  { id: 208, vendorName: "Rahim Uddin", product_title: "Red Chili Powder (1kg)", description: "Dried and ground, spicy variety", price: 450, category: "Produce", location: "Bogura", quantity: 300, unit: "kg" }
+  { id: 208, vendorName: "Rahim Uddin", product_title: "Red Chili Powder (1kg)", description: "Dried and ground, spicy variety", price: 450, category: "Produce", location: "Bogura", quantity: 300, unit: "kg" },
+  { id: 209, vendorName: "Hasan Traders", product_title: "Premium Boro Rice Seed", description: "High germination rate seed suitable for current Boro season.", price: 1200, category: "Seeds", location: "Gazipur", quantity: 150, unit: "kg" },
+  { id: 210, vendorName: "Hasan Traders", product_title: "Fresh Green Chili", description: "Freshly harvested green chili from Bogura farms.", price: 140, category: "Produce", location: "Bogura", quantity: 500, unit: "kg" },
+  { id: 211, vendorName: "Hasan Traders", product_title: "Sprayer Machine (16L)", description: "Durable hand sprayer suitable for regular field work.", price: 3200, category: "Tools", location: "Dhaka", quantity: 25, unit: "piece" }
 ];
 
 // ==========================================
