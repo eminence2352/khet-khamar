@@ -23,7 +23,7 @@
       <p class="logo-kicker">Farmer Community</p>
       <h1 class="logo-title">Khet-Khamar</h1>
     </div>
-    <!-- Matched header actions from index.html (optional for marketplace, but keeps UI consistent) -->
+    <!-- Matched header actions from index.html -->
     <div class="header-actions">
       <div id="authLinks" class="auth-links">
         <a href="login.html" id="loginLink" class="auth-btn" style="display: none;">Login</a>
@@ -187,13 +187,11 @@
     <section class="market-grid" aria-label="Marketplace ads"></section>
   </main>
 
-  <!-- Bottom Navigation matching index.html -->
   <nav class="bottom-nav" aria-label="Bottom navigation">
     <a class="nav-item" href="index.html" aria-label="Home">
       <i class="fa-solid fa-house"></i>
       <span>Home</span>
     </a>
-    <!-- Market is now the active tab -->
     <a class="nav-item active" href="marketplace.html" aria-label="Marketplace">
       <i class="fa-solid fa-store"></i>
       <span>Market</span>
@@ -201,7 +199,8 @@
     <a class="nav-item nav-post" href="index.html?compose=1" aria-label="Create post">
       <i class="fa-solid fa-plus"></i>
     </a>
-    <a class="nav-item disabled-nav" href="#" aria-label="News" data-disabled-nav="true">
+    <!-- Fixed News Link -->
+    <a class="nav-item" href="news.html" aria-label="News">
       <i class="fa-solid fa-newspaper"></i>
       <span>News</span>
     </a>
@@ -211,5 +210,6 @@
     </a>
   </nav>
 
+  <script src="script.js"></script>
 </body>
 </html>

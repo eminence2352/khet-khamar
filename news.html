@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News & Weather - Khet-Khamar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Matched fonts from index.html -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <header class="top-header">
+    <div class="logo-block">
+      <p class="logo-kicker">Farmer Community</p>
+      <h1 class="logo-title">Khet-Khamar</h1>
+    </div>
+    <!-- Authentication actions matching index.html -->
+    <div class="header-actions">
+      <div id="authLinks" class="auth-links">
+        <a href="login.html" id="loginLink" class="auth-btn" style="display: none;">Login</a>
+        <a href="signup.html" id="signupLink" class="auth-btn" style="display: none;">Sign Up</a>
+        <button id="logoutBtn" class="auth-btn logout" style="display: none;">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content news-main">
+    <div class="news-tabs">
+      <button class="news-tab active" data-tab="weather">
+        <i class="fa-solid fa-cloud-sun-rain"></i> Weather
+      </button>
+      <button class="news-tab" data-tab="news">
+        <i class="fa-solid fa-newspaper"></i> Agricultural News
+      </button>
+    </div>
+
+    <!-- Weather Tab -->
+    <div id="weather" class="news-content active">
+      <div class="weather-container" id="weatherContainer">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          Loading weather data...
+        </div>
+      </div>
+    </div>
+
+    <!-- News Tab -->
+    <div id="news" class="news-content">
+      <div class="news-grid" id="newsContainer">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+          Loading news...
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Navigation matching index.html -->
+  <nav class="bottom-nav" aria-label="Bottom navigation">
+    <a class="nav-item" href="index.html" aria-label="Home">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a class="nav-item" href="marketplace.html" aria-label="Marketplace">
+      <i class="fa-solid fa-store"></i>
+      <span>Market</span>
+    </a>
+    <a class="nav-item nav-post" href="index.html?compose=1" aria-label="Create post">
+      <i class="fa-solid fa-plus"></i>
+    </a>
+    <!-- News is now the active tab -->
+    <a class="nav-item active" href="news.html" aria-label="News">
+      <i class="fa-solid fa-newspaper"></i>
+      <span>News</span>
+    </a>
+    <a class="nav-item disabled-nav" href="#" aria-label="Profile" data-disabled-nav="true">
+      <i class="fa-solid fa-user"></i>
+      <span>Profile</span>
+    </a>
+  </nav>
+
+  <!-- Link script.js FIRST so we can use its local storage functions -->
+  <script src="script.js"></script>
+  
+  <script>
+    // ============================================
+    // TAB STATE AND DATA LOADING
+    // ============================================
+    const tabs = document.querySelectorAll('.news-tab');
+    const contents = document.querySelectorAll('.news-content');
+    const weatherLocations = ['Dhaka', 'Gazipur', 'Bogura', 'Rajshahi', 'Khulna', 'Chattogram'];
+    let currentWeatherArea = 'Dhaka';
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+
+        if (tabName === 'weather') loadWeather();
+        else if (tabName === 'news') loadNews();
+      });
+    });
+
+    function setActiveWeatherLocation(area) {
+      const currentArea = String(area || '').trim();
+      const el = document.getElementById('currentWeatherArea');
+      if (el) el.textContent = currentArea;
+      document.querySelectorAll('.weather-location-item').forEach((item) => {
+        item.classList.toggle('active', item.dataset.area === currentArea);
+      });
+    }
+
+    function renderWeatherLocationDropdown() {
+      const dropdown = document.getElementById('weatherLocationDropdown');
+      if (!dropdown) return;
+
+      dropdown.innerHTML = weatherLocations
+        .map(
+          (area) => `
+          <button 
+            type="button" 
+            class="weather-location-item${area === currentWeatherArea ? ' active' : ''}" 
+            data-area="${area}"
+          >
+            ${area}
+          </button>
+        `
+        )
+        .join('');
+
+      dropdown.querySelectorAll('.weather-location-item').forEach((item) => {
+        item.addEventListener('click', () => {
+          const area = item.dataset.area || 'Dhaka';
+          currentWeatherArea = area;
+          setActiveWeatherLocation(area);
+          closeWeatherLocationModal();
+          loadWeather();
+        });
+      });
+    }
+
+    function openWeatherLocationModal() {
+      document.getElementById('weatherLocationModal').classList.add('active');
+    }
+
+    function closeWeatherLocationModal() {
+      document.getElementById('weatherLocationModal').classList.remove('active');
+    }
+
+    function setupWeatherLocationModal() {
+      const trigger = document.getElementById('weatherLocationTrigger');
+      const modal = document.getElementById('weatherLocationModal');
+
+      if (trigger) {
+        trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          modal.classList.contains('active') ? closeWeatherLocationModal() : openWeatherLocationModal();
+        });
+      }
+      document.addEventListener('click', (e) => {
+        if (modal && !modal.contains(e.target) && trigger && !trigger.contains(e.target)) {
+          closeWeatherLocationModal();
+        }
+      });
+    }
+
+    // ============================================
+    // DUMMY DATA GENERATORS
+    // ============================================
+    function buildFallbackWeather(areaName) {
+      const today = new Date();
+      const forecast = Array.from({ length: 7 }, (_, index) => {
+        const day = new Date(today);
+        day.setDate(today.getDate() + index);
+        return {
+          date: day.toISOString().slice(0, 10),
+          maxTemp: 30 + Math.floor(Math.random() * 5) - 2,
+          minTemp: 23 + Math.floor(Math.random() * 3) - 1,
+          condition: index % 3 === 0 ? 'Partly Cloudy' : (index % 5 === 0 ? 'Light Rain' : 'Clear'),
+          rainfall: index % 4 === 0 ? 5 : 0,
+          windSpeed: 10 + Math.floor(Math.random() * 5),
+        };
+      });
+
+      return {
+        area: areaName,
+        days: 7,
+        current: {
+          temperature: 28,
+          condition: 'Partly Cloudy',
+          humidity: 78,
+          windSpeed: 12,
+          rainfall: 0,
+        },
+        forecast,
+      };
+    }
+
+    function buildFallbackNews() {
+      return [
+        {
+          title: "Government Announces New Subsidies for Organic Fertilizers",
+          category: "Policy",
+          excerpt: "Farmers in the northern districts will receive up to 30% subsidies on approved organic fertilizers starting next month.",
+          source: "AgriNews BD",
+          createdAt: new Date().toISOString(),
+          isFeatured: true
+        },
+        {
+          title: "Late Monsoon Rains: What It Means for the Aman Harvest",
+          category: "Weather Alert",
+          excerpt: "Unexpected late rains might delay the Aman paddy harvest in several regions. Experts advise checking field drainage.",
+          source: "Daily Star Agriculture",
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          isFeatured: false
+        },
+        {
+          title: "New High-Yield Tomato Seed Hits the Local Market",
+          category: "Market",
+          excerpt: "A new pest-resistant tomato variety has been introduced, promising up to 20% higher yields during the winter season.",
+          source: "Khet-Khamar Times",
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+          isFeatured: false
+        }
+      ];
+    }
+
+    // ============================================
+    // RENDER LOGIC
+    // ============================================
+    async function loadWeather(area = currentWeatherArea) {
+      const container = document.getElementById('weatherContainer');
+      const selectedArea = String(area || 'Dhaka').trim() || 'Dhaka';
+      currentWeatherArea = selectedArea;
+      setActiveWeatherLocation(selectedArea);
+
+      // Force fallback data since we don't have a backend
+      const weatherData = buildFallbackWeather(selectedArea);
+      renderWeatherUI(container, weatherData);
+    }
+
+    function renderWeatherUI(container, weatherData) {
+      const current = weatherData.current;
+      const themeClass = getWeatherThemeClass(current.condition);
+      const outlookText = getWeatherOutlook(current, weatherData.forecast || []);
+      const forecastCards = weatherData.forecast
+        .map(day => {
+          const dayDate = new Date(day.date);
+          const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          return `
+            <article class="forecast-day">
+              <div class="forecast-head">
+                <div class="forecast-date">${dayName}</div>
+                <i class="fa-solid forecast-icon ${getWeatherIcon(day.condition)}"></i>
+              </div>
+              <div class="forecast-condition">${day.condition}</div>
+              <div class="forecast-temps">${day.maxTemp}° / ${day.minTemp}°</div>
+              <div class="forecast-meta">Rain: ${day.rainfall} mm<br />Wind: ${day.windSpeed} km/h</div>
+            </article>
+          `;
+        })
+        .join('');
+
+      container.innerHTML = `
+        <div class="weather-card ${themeClass}">
+          <div class="weather-hero">
+            <div>
+              <h3 class="weather-title">${weatherData.area} Weather Outlook</h3>
+              <p class="weather-subtitle">${weatherData.days} day forecast for farm planning</p>
+            </div>
+            <div class="weather-main">
+              <div class="weather-icon">
+                <i class="fa-solid ${getWeatherIcon(current.condition)}"></i>
+              </div>
+              <div>
+                <div class="weather-temp">${current.temperature}°C</div>
+                <div class="weather-desc">${current.condition}</div>
+                <div class="weather-location-selector" style="position:relative; margin-top:8px; display:inline-block;">
+                  <button class="weather-location-btn-select" id="weatherLocationTrigger" style="font-size:13px; padding:6px 14px;">
+                    <i class="fa-solid fa-location-dot"></i>
+                    <span id="currentWeatherArea">${weatherData.area}</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </button>
+                  <div class="weather-location-modal" id="weatherLocationModal">
+                    <div class="weather-location-dropdown" id="weatherLocationDropdown"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="weather-metrics">
+            <div class="weather-detail">
+              <div class="weather-detail-label">Humidity</div>
+              <div class="weather-detail-value">${current.humidity}%</div>
+            </div>
+            <div class="weather-detail">
+              <div class="weather-detail-label">Wind</div>
+              <div class="weather-detail-value">${current.windSpeed} km/h</div>
+            </div>
+            <div class="weather-detail">
+              <div class="weather-detail-label">Rain</div>
+              <div class="weather-detail-value">${current.rainfall} mm</div>
+            </div>
+            <div class="weather-detail">
+              <div class="weather-detail-label">Forecast Span</div>
+              <div class="weather-detail-value">${weatherData.days} Days</div>
+            </div>
+          </div>
+          <div class="weather-outlook">
+            <h4>Farming Outlook</h4>
+            <p>${outlookText}</p>
+          </div>
+        </div>
+        <section class="forecast-grid">${forecastCards}</section>
+      `;
+      renderWeatherLocationDropdown();
+      setupWeatherLocationModal();
+    }
+
+    async function loadNews() {
+      const container = document.getElementById('newsContainer');
+      // Use fallback dummy data instead of fetching from a non-existent API
+      const newsData = buildFallbackNews();
+
+      container.innerHTML = newsData
+        .map(news => {
+          const date = new Date(news.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          const featuredClass = news.isFeatured ? 'news-featured' : '';
+          
+          return `
+            <article class="news-card ${featuredClass}">
+              <div class="news-card-header">
+                <div>
+                  <h3 class="news-card-title">${news.title}</h3>
+                </div>
+                <span class="news-category-badge">${news.category}</span>
+              </div>
+              <div class="news-card-body">
+                <p class="news-card-excerpt">${news.excerpt}</p>
+                <div class="news-card-footer">
+                  <span class="news-source">${news.source}</span>
+                  <span class="news-date">${date}</span>
+                </div>
+                <button
+                  class="news-share-btn submit-btn"
+                  style="margin-top: 15px; width: 100%;"
+                  type="button"
+                  data-news-title="${encodeURIComponent(news.title)}"
+                  data-news-excerpt="${encodeURIComponent(news.excerpt)}"
+                  data-news-source="${encodeURIComponent(news.source)}"
+                >
+                  <i class="fa-solid fa-share"></i> Share to Feed
+                </button>
+              </div>
+            </article>
+          `;
+        })
+        .join('');
+    }
+
+    // ============================================
+    // WEATHER HELPERS
+    // ============================================
+    function normalizeWeatherCondition(condition) { return String(condition || '').toLowerCase(); }
+    
+    function getWeatherIcon(condition) {
+      const lowerCondition = normalizeWeatherCondition(condition);
+      if (lowerCondition.includes('rain')) return 'fa-cloud-rain';
+      if (lowerCondition.includes('cloud')) return 'fa-cloud';
+      if (lowerCondition.includes('sun') || lowerCondition.includes('clear')) return 'fa-sun';
+      if (lowerCondition.includes('wind')) return 'fa-wind';
+      if (lowerCondition.includes('thunder')) return 'fa-cloud-bolt';
+      return 'fa-cloud-sun';
+    }
+
+    function getWeatherThemeClass(condition) {
+      const lowerCondition = normalizeWeatherCondition(condition);
+      if (lowerCondition.includes('thunder') || lowerCondition.includes('storm')) return 'theme-storm';
+      if (lowerCondition.includes('rain') || lowerCondition.includes('drizzle')) return 'theme-rainy';
+      if (lowerCondition.includes('cloud') || lowerCondition.includes('fog')) return 'theme-cloudy';
+      return 'theme-sunny';
+    }
+
+    function getWeatherOutlook(current, forecast) {
+      const rainToday = Number(current.rainfall) || 0;
+      const windToday = Number(current.windSpeed) || 0;
+      const humidity = Number(current.humidity) || 0;
+      const maxRain = Math.max(...(forecast || []).map(day => Number(day.rainfall) || 0), 0);
+
+      if (rainToday >= 10 || maxRain >= 15) return 'Heavy rain risk detected. Prioritize drainage checks, delay spraying, and protect seedbeds from waterlogging.';
+      if (windToday >= 28) return 'Strong wind conditions expected. Secure lightweight structures and avoid pesticide spraying during peak wind hours.';
+      if (humidity >= 85) return 'Humidity is high, which may increase fungal pressure. Monitor leaves for early disease signs and improve field airflow.';
+      return 'Conditions look stable for routine field work. Good window for irrigation planning, light fertilization, and transplant care.';
+    }
+
+    // ============================================
+    // SHARE TO FEED EVENT
+    // ============================================
+    const newsContainer = document.getElementById('newsContainer');
+    if (newsContainer) {
+      newsContainer.addEventListener('click', (event) => {
+        const button = event.target.closest('.news-share-btn');
+        if (!button) return;
+
+        // Uses getUser() from script.js
+        const user = getUser();
+        if (!user) {
+          alert('Please login to share news to your feed.');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const title = decodeURIComponent(button.dataset.newsTitle);
+        const excerpt = decodeURIComponent(button.dataset.newsExcerpt);
+        const source = decodeURIComponent(button.dataset.newsSource);
+
+        // Build a beautiful formatted post text
+        const postText = `📰 Shared Article: **${title}**\n\n"${excerpt}"\n\n— Source: ${source}`;
+
+        // Uses getPosts() and savePosts() from script.js
+        const posts = getPosts();
+        posts.unshift({
+          id: Date.now(),
+          authorName: user.full_name,
+          created_at: "Just now",
+          text_content: postText,
+          image_url: "",
+          likesCount: 0,
+          commentsCount: 0,
+        });
+        savePosts(posts);
+
+        alert('News successfully shared to your feed!');
+        
+        // Change button style temporarily to show success
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fa-solid fa-check"></i> Shared!';
+        button.style.backgroundColor = '#4a6341';
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      });
+    }
+
+    // Initialize Active Tab Data
+    const activeTabObj = document.querySelector('.news-tab.active');
+    if (activeTabObj && activeTabObj.dataset.tab === 'weather') loadWeather();
+    else if (activeTabObj && activeTabObj.dataset.tab === 'news') loadNews();
+  </script>
+</body>
+</html>
