@@ -7,6 +7,7 @@
 const FEED_KEY = "kk_demo_feed_v2"; // Updated to force fresh feed load
 const USER_KEY = "kk_demo_user";
 const MARKET_KEY = "kk_demo_market_v2";
+const LIKES_KEY = "kk_post_likes";
 
 const DEMO_USERS = [
   { id: 1, mobile_number: "01700000001", password: "password123", full_name: "Rahim Uddin", role: "Farmer" },
@@ -75,6 +76,26 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function getUserLikes(userId) {
+  try {
+    const data = JSON.parse(localStorage.getItem(LIKES_KEY) || "{}");
+    return data[userId] || [];
+  } catch { return []; }
+}
+
+function toggleUserLike(userId, postId) {
+  let data = {};
+  try { data = JSON.parse(localStorage.getItem(LIKES_KEY) || "{}"); } catch {}
+  const likes = data[userId] || [];
+  const idx = likes.indexOf(postId);
+  const isNowLiked = idx === -1;
+  if (isNowLiked) likes.push(postId);
+  else likes.splice(idx, 1);
+  data[userId] = likes;
+  localStorage.setItem(LIKES_KEY, JSON.stringify(data));
+  return isNowLiked;
 }
 
 function attachDisabledNavHandlers() {
@@ -232,13 +253,23 @@ function initFeedPage() {
   if (removePostImageBtn) removePostImageBtn.addEventListener("click", clearPreview);
 
   function renderFeedPosts() {
+    const user = getUser();
+    const userLikes = user ? getUserLikes(user.id) : [];
     const posts = getPosts();
     feedList.innerHTML = posts.map((post, index) => {
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
       const initials = getInitials(post.authorName);
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
+      const isLiked = userLikes.includes(post.id);
+      const existingComments = (post.comments || []).map(c => `
+        <div class="comment-item">
+          <span class="comment-author">${escapeHtml(c.authorName)}</span>
+          <span class="comment-text">${escapeHtml(c.text)}</span>
+          <span class="comment-time">${escapeHtml(c.created_at)}</span>
+        </div>
+      `).join("");
 
-      return `<article class="post-card">
+      return `<article class="post-card" data-post-id="${post.id}">
         <div class="post-head">
           <div class="avatar ${avatarClass}">${initials}</div>
           <div class="post-user-meta">
@@ -249,13 +280,97 @@ function initFeedPage() {
         <p class="post-text">${escapeHtml(post.text_content || "")}</p>
         ${imageMarkup}
         <div class="post-actions">
-          <button type="button"><i class="fa-regular fa-heart"></i> Like ${Number(post.likesCount) || 0}</button>
-          <button type="button"><i class="fa-regular fa-comment"></i> Comment ${Number(post.commentsCount) || 0}</button>
+          <button type="button" class="like-btn${isLiked ? " liked" : ""}" data-action="like" data-post-id="${post.id}">
+            <i class="fa-${isLiked ? "solid" : "regular"} fa-heart"></i> Like <span class="like-count">${Number(post.likesCount) || 0}</span>
+          </button>
+          <button type="button" data-action="comment" data-post-id="${post.id}">
+            <i class="fa-regular fa-comment"></i> Comment <span class="comment-count">${Number(post.commentsCount) || 0}</span>
+          </button>
           <button type="button"><i class="fa-solid fa-share"></i> Share</button>
+        </div>
+        <div class="comment-section" id="comment-section-${post.id}" style="display:none;">
+          <div class="comment-list">${existingComments}</div>
+          <div class="comment-input-row">
+            <div class="avatar avatar-a" style="width:32px;height:32px;font-size:12px;flex-shrink:0;">${user ? getInitials(user.full_name) : "?"}</div>
+            <textarea class="comment-textarea" placeholder="Write a comment..." rows="1" data-post-id="${post.id}"></textarea>
+            <button type="button" class="comment-submit-btn" data-action="submit-comment" data-post-id="${post.id}">Post</button>
+          </div>
         </div>
       </article>`;
     }).join("");
   }
+
+  // Event delegation — attached once, handles all posts
+  feedList.addEventListener("click", (e) => {
+    const user = getUser();
+
+    // Like
+    const likeBtn = e.target.closest('[data-action="like"]');
+    if (likeBtn) {
+      if (!user) { window.location.href = "login.html"; return; }
+      const postId = Number(likeBtn.dataset.postId);
+      const isNowLiked = toggleUserLike(user.id, postId);
+      const posts = getPosts();
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        post.likesCount = (Number(post.likesCount) || 0) + (isNowLiked ? 1 : -1);
+        savePosts(posts);
+      }
+      // Update DOM without full re-render
+      likeBtn.classList.toggle("liked", isNowLiked);
+      const icon = likeBtn.querySelector("i");
+      if (icon) { icon.className = isNowLiked ? "fa-solid fa-heart" : "fa-regular fa-heart"; }
+      const countEl = likeBtn.querySelector(".like-count");
+      if (countEl && post) countEl.textContent = Number(post.likesCount) || 0;
+      return;
+    }
+
+    // Toggle comment section
+    const commentBtn = e.target.closest('[data-action="comment"]');
+    if (commentBtn) {
+      const postId = commentBtn.dataset.postId;
+      const section = document.getElementById(`comment-section-${postId}`);
+      if (section) {
+        const isVisible = section.style.display !== "none";
+        section.style.display = isVisible ? "none" : "block";
+        if (!isVisible) section.querySelector(".comment-textarea")?.focus();
+      }
+      return;
+    }
+
+    // Submit comment
+    const submitBtn = e.target.closest('[data-action="submit-comment"]');
+    if (submitBtn) {
+      if (!user) { window.location.href = "login.html"; return; }
+      const postId = Number(submitBtn.dataset.postId);
+      const section = document.getElementById(`comment-section-${postId}`);
+      const textarea = section?.querySelector(".comment-textarea");
+      const text = textarea?.value.trim();
+      if (!text) return;
+
+      const posts = getPosts();
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        if (!post.comments) post.comments = [];
+        post.comments.push({ authorName: user.full_name, text, created_at: "Just now" });
+        post.commentsCount = (Number(post.commentsCount) || 0) + 1;
+        savePosts(posts);
+        // Update comment count in button
+        const article = feedList.querySelector(`[data-post-id="${postId}"]`);
+        const countEl = article?.querySelector(".comment-count");
+        if (countEl) countEl.textContent = post.commentsCount;
+        // Append comment to list
+        const commentList = section.querySelector(".comment-list");
+        const newComment = document.createElement("div");
+        newComment.className = "comment-item";
+        newComment.innerHTML = `<span class="comment-author">${escapeHtml(user.full_name)}</span><span class="comment-text">${escapeHtml(text)}</span><span class="comment-time">Just now</span>`;
+        commentList.appendChild(newComment);
+        textarea.value = "";
+        textarea.style.height = "auto";
+      }
+      return;
+    }
+  });
 
   if (postBtn) {
     postBtn.addEventListener("click", () => {
@@ -289,41 +404,123 @@ function initMarketplacePage() {
   const marketGrid = document.querySelector(".market-grid");
   const marketSubmitBtn = document.querySelector(".marketplace-form .submit-btn");
   const marketClearBtn = document.querySelector(".marketplace-form .cancel-btn");
-  
-  if (!marketGrid) return; // Exit if not on marketplace
+  const adImageInput = document.getElementById("adImage");
+  const adImagePreview = document.getElementById("adImagePreview");
+  const adImagePreviewImg = document.getElementById("adImagePreviewImg");
+  const removeAdImageBtn = document.getElementById("removeAdImage");
+
+  if (!marketGrid) return;
+
+  let selectedAdImage = null;
+
+  // Image preview handling
+  if (adImageInput) {
+    adImageInput.addEventListener("change", () => {
+      const file = adImageInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedAdImage = e.target.result;
+        if (adImagePreviewImg) adImagePreviewImg.src = selectedAdImage;
+        if (adImagePreview) adImagePreview.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeAdImageBtn) {
+    removeAdImageBtn.addEventListener("click", () => {
+      selectedAdImage = null;
+      if (adImageInput) adImageInput.value = "";
+      if (adImagePreview) adImagePreview.style.display = "none";
+      if (adImagePreviewImg) adImagePreviewImg.src = "";
+    });
+  }
+
+  // Contact modal — injected once, reused
+  const modal = document.createElement("div");
+  modal.id = "contactModal";
+  modal.innerHTML = `
+    <div class="contact-modal-overlay" id="contactModalOverlay">
+      <div class="contact-modal-box">
+        <button class="contact-modal-close" id="contactModalClose"><i class="fa-solid fa-xmark"></i></button>
+        <div class="contact-modal-icon"><i class="fa-solid fa-phone"></i></div>
+        <h3 class="contact-modal-title">Contact Seller</h3>
+        <p class="contact-modal-seller" id="contactModalSeller"></p>
+        <a class="contact-modal-phone" id="contactModalPhone" href="#"></a>
+        <p class="contact-modal-note">This is a demo — tap the number to call</p>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  function closeModal() {
+    document.getElementById("contactModalOverlay").style.display = "none";
+  }
+  function openModal(vendorName, vendorPhone) {
+    document.getElementById("contactModalSeller").textContent = vendorName;
+    const phoneEl = document.getElementById("contactModalPhone");
+    phoneEl.textContent = vendorPhone;
+    phoneEl.href = `tel:${vendorPhone}`;
+    document.getElementById("contactModalOverlay").style.display = "flex";
+  }
+
+  document.getElementById("contactModalClose").addEventListener("click", closeModal);
+  document.getElementById("contactModalOverlay").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("contactModalOverlay")) closeModal();
+  });
 
   function renderAds() {
     const ads = getMarketAds();
-    
+
     if (ads.length === 0) {
       marketGrid.innerHTML = `<p style="text-align:center; width:100%; color: #4a5568;">No products available right now.</p>`;
       return;
     }
 
-    marketGrid.innerHTML = ads.map(ad => `
-      <article class="news-card" style="margin-bottom: 20px;"> 
-        <div class="news-card-header" style="background: #f8fafc; color: #2c3e50;">
-          <h3 class="news-card-title" style="margin:0;">${escapeHtml(ad.product_title)}</h3>
-          <span class="news-category-badge">${escapeHtml(ad.category)}</span>
-        </div>
-        <div class="news-card-body">
-          <h2 style="color: #7aa169; margin: 0 0 10px 0;">৳${ad.price}</h2>
-          <p class="news-card-excerpt">${escapeHtml(ad.description)}</p>
-          <p style="font-size: 13px; color: #4a5568;">
-            <strong>Quantity:</strong> ${ad.quantity} ${escapeHtml(ad.unit)} <br>
-            <strong>Location:</strong> <i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.location)}
-          </p>
-          <div class="news-card-footer">
-            <span class="news-source"><i class="fa-solid fa-shop"></i> ${escapeHtml(ad.vendorName)}</span>
-            <button class="submit-btn" style="padding: 8px 16px; font-size: 14px;">Contact</button>
+    marketGrid.innerHTML = ads.map(ad => {
+      const imageMarkup = ad.image_url
+        ? `<img src="${escapeHtml(ad.image_url)}" alt="${escapeHtml(ad.product_title)}" class="market-card-img" />`
+        : "";
+      return `
+        <article class="news-card" style="margin-bottom: 20px;">
+          ${imageMarkup}
+          <div class="news-card-header" style="background: #f8fafc; color: #2c3e50;">
+            <h3 class="news-card-title" style="margin:0;">${escapeHtml(ad.product_title)}</h3>
+            <span class="news-category-badge">${escapeHtml(ad.category)}</span>
           </div>
-        </div>
-      </article>
-    `).join("");
+          <div class="news-card-body">
+            <h2 style="color: #354cce; margin: 0 0 10px 0;">৳${ad.price}</h2>
+            <p class="news-card-excerpt">${escapeHtml(ad.description)}</p>
+            <p style="font-size: 13px; color: #4a5568;">
+              <strong>Quantity:</strong> ${ad.quantity} ${escapeHtml(ad.unit)} <br>
+              <strong>Location:</strong> <i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.location)}
+            </p>
+            <div class="news-card-footer">
+              <span class="news-source"><i class="fa-solid fa-shop"></i> ${escapeHtml(ad.vendorName)}</span>
+              <button class="submit-btn" style="padding: 8px 16px; font-size: 14px;"
+                data-action="contact" data-ad-id="${ad.id}">Contact Seller</button>
+            </div>
+          </div>
+        </article>`;
+    }).join("");
   }
+
+  // Event delegation for contact button
+  marketGrid.addEventListener("click", (e) => {
+    const contactBtn = e.target.closest('[data-action="contact"]');
+    if (!contactBtn) return;
+    const adId = Number(contactBtn.dataset.adId);
+    const ads = getMarketAds();
+    const ad = ads.find(a => a.id === adId);
+    if (ad) openModal(ad.vendorName, ad.vendorPhone || "Not provided");
+  });
 
   function clearMarketForm() {
     document.querySelectorAll('.marketplace-form input, .marketplace-form textarea, .marketplace-form select').forEach(el => el.value = '');
+    selectedAdImage = null;
+    if (adImagePreview) adImagePreview.style.display = "none";
+    if (adImagePreviewImg) adImagePreviewImg.src = "";
   }
 
   if (marketClearBtn) {
@@ -333,7 +530,7 @@ function initMarketplacePage() {
   if (marketSubmitBtn) {
     marketSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      
+
       const user = getUser();
       if (!user) {
         alert("You must be logged in to post a product.");
@@ -357,19 +554,21 @@ function initMarketplacePage() {
       const newAd = {
         id: Date.now(),
         vendorName: user.full_name,
+        vendorPhone: user.mobile_number,
         product_title: title,
         description: desc,
         price: Number(price),
         category: category,
         location: location,
         quantity: Number(quantity) || 0,
-        unit: unit || "unit"
+        unit: unit || "unit",
+        image_url: selectedAdImage || null
       };
 
       const ads = getMarketAds();
       ads.unshift(newAd);
       saveMarketAds(ads);
-      
+
       alert("Product posted successfully!");
       clearMarketForm();
       renderAds();
@@ -377,79 +576,6 @@ function initMarketplacePage() {
   }
 
   renderAds();
-}
-
-function initProfilePage() {
-  const profileCard = document.getElementById("profileCard");
-  const profileLogoutWrap = document.getElementById("profileLogoutWrap");
-  const profileLogoutBtn = document.getElementById("profileLogoutBtn");
-  const profilePostsList = document.getElementById("profilePosts");
-
-  if (!profileCard) return; // Exit if not on profile page
-
-  const user = getUser();
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  // 1. Render Profile Card
-  const initials = getInitials(user.full_name);
-  
-  // Calculate dynamic stats
-  const allPosts = getPosts();
-  const userPosts = allPosts.filter(p => p.authorName === user.full_name);
-  
-  profileCard.innerHTML = `
-    <div class="profile-avatar-large">${initials}</div>
-    <h2 class="profile-name">${escapeHtml(user.full_name)}</h2>
-    <span class="profile-role-badge">${escapeHtml(user.role)}</span>
-    <div class="profile-stats">
-      <div class="stat-item">
-        <span class="stat-value">${userPosts.length}</span>
-        <span class="stat-label">Posts</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-value">${user.mobile_number.slice(-3)}</span> <!-- Dummy stat based on mobile -->
-        <span class="stat-label">Connections</span>
-      </div>
-    </div>
-  `;
-
-  // 2. Render User's Own Posts
-  if (userPosts.length === 0) {
-    profilePostsList.innerHTML = `<p style="text-align:center; color: #718096; padding: 20px;">You haven't posted anything yet.</p>`;
-  } else {
-    profilePostsList.innerHTML = userPosts.map((post, index) => {
-      const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
-      const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
-
-      return `<article class="post-card">
-        <div class="post-head">
-          <div class="avatar ${avatarClass}">${initials}</div>
-          <div class="post-user-meta">
-            <p class="post-user">${escapeHtml(post.authorName)}</p>
-            <p class="post-time">${escapeHtml(post.created_at)}</p>
-          </div>
-        </div>
-        <p class="post-text">${escapeHtml(post.text_content || "")}</p>
-        ${imageMarkup}
-        <div class="post-actions">
-          <button type="button"><i class="fa-regular fa-heart"></i> Like ${Number(post.likesCount) || 0}</button>
-          <button type="button"><i class="fa-regular fa-comment"></i> Comment ${Number(post.commentsCount) || 0}</button>
-        </div>
-      </article>`;
-    }).join("");
-  }
-
-  // 3. Handle Logout
-  if (profileLogoutWrap && profileLogoutBtn) {
-    profileLogoutWrap.style.display = "block";
-    profileLogoutBtn.addEventListener("click", () => {
-      localStorage.removeItem(USER_KEY);
-      window.location.href = "login.html";
-    });
-  }
 }
 
 // ==========================================
@@ -526,14 +652,23 @@ function initProfilePage() {
   }
 
   // 3. Render User's Own Posts
+  const userLikes = getUserLikes(user.id);
   if (userPosts.length === 0) {
     profilePostsList.innerHTML = `<p style="text-align:center; color: #718096; padding: 20px;">You haven't posted anything yet.</p>`;
   } else {
     profilePostsList.innerHTML = userPosts.map((post, index) => {
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
+      const isLiked = userLikes.includes(post.id);
+      const existingComments = (post.comments || []).map(c => `
+        <div class="comment-item">
+          <span class="comment-author">${escapeHtml(c.authorName)}</span>
+          <span class="comment-text">${escapeHtml(c.text)}</span>
+          <span class="comment-time">${escapeHtml(c.created_at)}</span>
+        </div>
+      `).join("");
 
-      return `<article class="post-card">
+      return `<article class="post-card" data-post-id="${post.id}">
         <div class="post-head">
           <div class="avatar ${avatarClass}">${initials}</div>
           <div class="post-user-meta">
@@ -544,11 +679,84 @@ function initProfilePage() {
         <p class="post-text">${escapeHtml(post.text_content || "")}</p>
         ${imageMarkup}
         <div class="post-actions">
-          <button type="button" onclick="alert('Liked!')"><i class="fa-regular fa-heart"></i> Like ${Number(post.likesCount) || 0}</button>
-          <button type="button"><i class="fa-regular fa-comment"></i> Comment ${Number(post.commentsCount) || 0}</button>
+          <button type="button" class="like-btn${isLiked ? " liked" : ""}" data-action="like" data-post-id="${post.id}">
+            <i class="fa-${isLiked ? "solid" : "regular"} fa-heart"></i> Like <span class="like-count">${Number(post.likesCount) || 0}</span>
+          </button>
+          <button type="button" data-action="comment" data-post-id="${post.id}">
+            <i class="fa-regular fa-comment"></i> Comment <span class="comment-count">${Number(post.commentsCount) || 0}</span>
+          </button>
+        </div>
+        <div class="comment-section" id="comment-section-${post.id}" style="display:none;">
+          <div class="comment-list">${existingComments}</div>
+          <div class="comment-input-row">
+            <div class="avatar avatar-a" style="width:32px;height:32px;font-size:12px;flex-shrink:0;">${getInitials(user.full_name)}</div>
+            <textarea class="comment-textarea" placeholder="Write a comment..." rows="1" data-post-id="${post.id}"></textarea>
+            <button type="button" class="comment-submit-btn" data-action="submit-comment" data-post-id="${post.id}">Post</button>
+          </div>
         </div>
       </article>`;
     }).join("");
+  }
+
+  // Event delegation on profile posts list
+  if (profilePostsList) {
+    profilePostsList.addEventListener("click", (e) => {
+      const likeBtn = e.target.closest('[data-action="like"]');
+      if (likeBtn) {
+        const postId = Number(likeBtn.dataset.postId);
+        const isNowLiked = toggleUserLike(user.id, postId);
+        const posts = getPosts();
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+          post.likesCount = (Number(post.likesCount) || 0) + (isNowLiked ? 1 : -1);
+          savePosts(posts);
+        }
+        likeBtn.classList.toggle("liked", isNowLiked);
+        const icon = likeBtn.querySelector("i");
+        if (icon) icon.className = isNowLiked ? "fa-solid fa-heart" : "fa-regular fa-heart";
+        const countEl = likeBtn.querySelector(".like-count");
+        if (countEl && post) countEl.textContent = Number(post.likesCount) || 0;
+        return;
+      }
+
+      const commentBtn = e.target.closest('[data-action="comment"]');
+      if (commentBtn) {
+        const postId = commentBtn.dataset.postId;
+        const section = document.getElementById(`comment-section-${postId}`);
+        if (section) {
+          const isVisible = section.style.display !== "none";
+          section.style.display = isVisible ? "none" : "block";
+          if (!isVisible) section.querySelector(".comment-textarea")?.focus();
+        }
+        return;
+      }
+
+      const submitBtn = e.target.closest('[data-action="submit-comment"]');
+      if (submitBtn) {
+        const postId = Number(submitBtn.dataset.postId);
+        const section = document.getElementById(`comment-section-${postId}`);
+        const textarea = section?.querySelector(".comment-textarea");
+        const text = textarea?.value.trim();
+        if (!text) return;
+        const posts = getPosts();
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+          if (!post.comments) post.comments = [];
+          post.comments.push({ authorName: user.full_name, text, created_at: "Just now" });
+          post.commentsCount = (Number(post.commentsCount) || 0) + 1;
+          savePosts(posts);
+          const article = profilePostsList.querySelector(`[data-post-id="${postId}"]`);
+          const countEl = article?.querySelector(".comment-count");
+          if (countEl) countEl.textContent = post.commentsCount;
+          const commentList = section.querySelector(".comment-list");
+          const newComment = document.createElement("div");
+          newComment.className = "comment-item";
+          newComment.innerHTML = `<span class="comment-author">${escapeHtml(user.full_name)}</span><span class="comment-text">${escapeHtml(text)}</span><span class="comment-time">Just now</span>`;
+          commentList.appendChild(newComment);
+          textarea.value = "";
+        }
+      }
+    });
   }
 
   // 4. Handle Admin Tools
