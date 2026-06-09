@@ -8,6 +8,7 @@ const FEED_KEY = "kk_demo_feed_v2"; // Updated to force fresh feed load
 const USER_KEY = "kk_demo_user";
 const MARKET_KEY = "kk_demo_market_v2";
 const LIKES_KEY = "kk_post_likes";
+const USERS_KEY = "kk_demo_users";
 
 const DEMO_USERS = [
   { id: 1, mobile_number: "01700000001", password: "password123", full_name: "Rahim Uddin", role: "Farmer" },
@@ -59,8 +60,13 @@ const INITIAL_MARKET_ADS = [
 function getUser() {
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
-  try { return JSON.parse(raw); } 
-  catch (_error) { localStorage.removeItem(USER_KEY); return null; }
+  try {
+    const sessionUser = JSON.parse(raw);
+    const users = getUsers();
+    const latest = users.find(u => u.id === sessionUser.id);
+    if (latest) return { ...sessionUser, role: latest.role };
+    return sessionUser;
+  } catch (_error) { localStorage.removeItem(USER_KEY); return null; }
 }
 
 function getInitials(name) {
@@ -96,6 +102,20 @@ function toggleUserLike(userId, postId) {
   data[userId] = likes;
   localStorage.setItem(LIKES_KEY, JSON.stringify(data));
   return isNowLiked;
+}
+
+function getUsers() {
+  try {
+    const stored = localStorage.getItem(USERS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  const copy = DEMO_USERS.map(u => ({ ...u }));
+  localStorage.setItem(USERS_KEY, JSON.stringify(copy));
+  return copy;
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
 function attachDisabledNavHandlers() {
@@ -255,19 +275,22 @@ function initFeedPage() {
   function renderFeedPosts() {
     const user = getUser();
     const userLikes = user ? getUserLikes(user.id) : [];
+    const adminUser = user?.role === "Admin";
     const posts = getPosts();
     feedList.innerHTML = posts.map((post, index) => {
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
       const initials = getInitials(post.authorName);
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
       const isLiked = userLikes.includes(post.id);
-      const existingComments = (post.comments || []).map(c => `
-        <div class="comment-item">
+      const existingComments = (post.comments || []).map((c, idx) => `
+        <div class="comment-item" data-comment-index="${idx}">
           <span class="comment-author">${escapeHtml(c.authorName)}</span>
           <span class="comment-text">${escapeHtml(c.text)}</span>
           <span class="comment-time">${escapeHtml(c.created_at)}</span>
+          ${adminUser ? `<button type="button" class="admin-comment-del" data-action="admin-delete-comment" data-post-id="${post.id}" data-comment-index="${idx}" title="Delete comment"><i class="fa-solid fa-xmark"></i></button>` : ""}
         </div>
       `).join("");
+      const adminPostBtn = adminUser ? `<button type="button" class="admin-post-del" data-action="admin-delete-post" data-post-id="${post.id}" title="Delete post"><i class="fa-solid fa-trash"></i></button>` : "";
 
       return `<article class="post-card" data-post-id="${post.id}">
         <div class="post-head">
@@ -276,6 +299,7 @@ function initFeedPage() {
             <p class="post-user">${escapeHtml(post.authorName)}</p>
             <p class="post-time">${escapeHtml(post.created_at)}</p>
           </div>
+          ${adminPostBtn}
         </div>
         <p class="post-text">${escapeHtml(post.text_content || "")}</p>
         ${imageMarkup}
@@ -303,6 +327,36 @@ function initFeedPage() {
   // Event delegation — attached once, handles all posts
   feedList.addEventListener("click", (e) => {
     const user = getUser();
+
+    // Admin: delete post
+    const adminDelPost = e.target.closest('[data-action="admin-delete-post"]');
+    if (adminDelPost) {
+      if (!confirm("Delete this post permanently?")) return;
+      const postId = Number(adminDelPost.dataset.postId);
+      savePosts(getPosts().filter(p => p.id !== postId));
+      adminDelPost.closest("article")?.remove();
+      return;
+    }
+
+    // Admin: delete comment
+    const adminDelComment = e.target.closest('[data-action="admin-delete-comment"]');
+    if (adminDelComment) {
+      if (!confirm("Delete this comment?")) return;
+      const postId = Number(adminDelComment.dataset.postId);
+      const commentIdx = Number(adminDelComment.dataset.commentIndex);
+      const posts = getPosts();
+      const post = posts.find(p => p.id === postId);
+      if (post?.comments) {
+        post.comments.splice(commentIdx, 1);
+        post.commentsCount = Math.max(0, (post.commentsCount || 0) - 1);
+        savePosts(posts);
+        adminDelComment.closest(".comment-item")?.remove();
+        const article = feedList.querySelector(`[data-post-id="${postId}"]`);
+        const countEl = article?.querySelector(".comment-count");
+        if (countEl) countEl.textContent = post.commentsCount;
+      }
+      return;
+    }
 
     // Like
     const likeBtn = e.target.closest('[data-action="like"]');
@@ -578,6 +632,136 @@ function initMarketplacePage() {
   renderAds();
 }
 
+function renderAdminPanel(panel) {
+  panel.style.display = "block";
+  const ROLES = ["Farmer", "Verified Expert", "General Vendor", "Admin"];
+
+  panel.innerHTML = `
+    <div class="admin-panel">
+      <h2 class="admin-panel-title"><i class="fa-solid fa-shield-halved"></i> Admin Tools</h2>
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="posts">Posts</button>
+        <button class="admin-tab" data-tab="market">Marketplace</button>
+        <button class="admin-tab" data-tab="users">Users &amp; Roles</button>
+      </div>
+      <div id="adminTabContent" class="admin-tab-content"></div>
+    </div>
+  `;
+
+  function renderTab(tab) {
+    const content = document.getElementById("adminTabContent");
+
+    if (tab === "posts") {
+      const posts = getPosts();
+      if (posts.length === 0) { content.innerHTML = `<p class="admin-empty">No posts yet.</p>`; return; }
+      content.innerHTML = posts.map(p => `
+        <div class="admin-list-item" data-post-id="${p.id}">
+          <div class="admin-item-info">
+            <span class="admin-item-author">${escapeHtml(p.authorName)}</span>
+            <span class="admin-item-preview">${escapeHtml((p.text_content || "").slice(0, 70))}${(p.text_content || "").length > 70 ? "…" : ""}</span>
+            ${(p.comments || []).length > 0 ? `<div class="admin-comment-sublist">${(p.comments || []).map((c, idx) => `
+              <div class="admin-comment-row">
+                <span class="admin-comment-who">${escapeHtml(c.authorName)}:</span>
+                <span class="admin-comment-body">${escapeHtml((c.text || "").slice(0, 50))}${(c.text || "").length > 50 ? "…" : ""}</span>
+                <button class="admin-del-sm" data-action="panel-del-comment" data-post-id="${p.id}" data-comment-index="${idx}" title="Delete comment"><i class="fa-solid fa-xmark"></i></button>
+              </div>`).join("")}</div>` : ""}
+          </div>
+          <button class="admin-del-btn" data-action="panel-del-post" data-post-id="${p.id}"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+      `).join("");
+
+    } else if (tab === "market") {
+      const ads = getMarketAds();
+      if (ads.length === 0) { content.innerHTML = `<p class="admin-empty">No listings yet.</p>`; return; }
+      content.innerHTML = ads.map(a => `
+        <div class="admin-list-item" data-ad-id="${a.id}">
+          <div class="admin-item-info">
+            <span class="admin-item-author">${escapeHtml(a.vendorName)}</span>
+            <span class="admin-item-preview">${escapeHtml(a.product_title)} &mdash; ৳${a.price}</span>
+          </div>
+          <button class="admin-del-btn" data-action="panel-del-ad" data-ad-id="${a.id}"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+      `).join("");
+
+    } else if (tab === "users") {
+      const users = getUsers();
+      content.innerHTML = users.map(u => `
+        <div class="admin-list-item">
+          <div class="admin-item-info">
+            <span class="admin-item-author">${escapeHtml(u.full_name)}</span>
+            <span class="admin-item-preview">${escapeHtml(u.mobile_number)}</span>
+          </div>
+          <select class="admin-role-select" data-user-id="${u.id}">
+            ${ROLES.map(r => `<option value="${r}"${u.role === r ? " selected" : ""}>${r}</option>`).join("")}
+          </select>
+          <button class="admin-save-btn" data-action="panel-save-role" data-user-id="${u.id}">Save</button>
+        </div>
+      `).join("");
+    }
+
+    // Bind actions inside tab
+    content.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      const action = btn.dataset.action;
+
+      if (action === "panel-del-post") {
+        if (!confirm("Delete this post permanently?")) return;
+        savePosts(getPosts().filter(p => p.id !== Number(btn.dataset.postId)));
+        renderTab("posts");
+      }
+      if (action === "panel-del-comment") {
+        if (!confirm("Delete this comment?")) return;
+        const postId = Number(btn.dataset.postId);
+        const idx = Number(btn.dataset.commentIndex);
+        const posts = getPosts();
+        const post = posts.find(p => p.id === postId);
+        if (post?.comments) {
+          post.comments.splice(idx, 1);
+          post.commentsCount = Math.max(0, (post.commentsCount || 0) - 1);
+          savePosts(posts);
+        }
+        renderTab("posts");
+      }
+      if (action === "panel-del-ad") {
+        if (!confirm("Delete this listing permanently?")) return;
+        saveMarketAds(getMarketAds().filter(a => a.id !== Number(btn.dataset.adId)));
+        renderTab("market");
+      }
+      if (action === "panel-save-role") {
+        const userId = Number(btn.dataset.userId);
+        const select = content.querySelector(`.admin-role-select[data-user-id="${userId}"]`);
+        const newRole = select?.value;
+        if (!newRole) return;
+        const users = getUsers();
+        const target = users.find(u => u.id === userId);
+        if (target) {
+          target.role = newRole;
+          saveUsers(users);
+          // Update session if admin changed their own role
+          const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+          if (currentUser?.id === userId) {
+            localStorage.setItem(USER_KEY, JSON.stringify({ ...currentUser, role: newRole }));
+          }
+        }
+        btn.textContent = "Saved!";
+        btn.disabled = true;
+        setTimeout(() => { btn.textContent = "Save"; btn.disabled = false; }, 1500);
+      }
+    });
+  }
+
+  renderTab("posts");
+
+  panel.querySelectorAll(".admin-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      panel.querySelectorAll(".admin-tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      renderTab(tab.dataset.tab);
+    });
+  });
+}
+
 // ==========================================
 // 5. EXECUTION SEQUENCE
 // ==========================================
@@ -761,7 +945,7 @@ function initProfilePage() {
 
   // 4. Handle Admin Tools
   if (user.role === "Admin" && adminToolsPanel) {
-    adminToolsPanel.style.display = "block";
+    renderAdminPanel(adminToolsPanel);
   }
 
   // 5. Handle Logout
