@@ -173,16 +173,21 @@
   </style>
 </head>
 <body data-lang="en">
+  <!-- This card holds the full signup form. -->
   <div class="auth-container">
+    <!-- This tells the user what app they are joining. -->
     <div class="auth-header">
       <h1>Khet-Khamar</h1>
       <p data-i18n="appTagline">Farmer Community</p>
     </div>
 
+    <!-- These boxes show success or error messages. -->
     <div class="success-message" id="successMessage"></div>
     <div class="error-message" id="errorMessage"></div>
 
+    <!-- This is where a new user creates an account. -->
     <form class="auth-form" id="signupForm">
+      <!-- Full name input. -->
       <div class="form-group">
         <label for="fullName">Full Name</label>
         <input
@@ -193,6 +198,7 @@
         />
       </div>
 
+      <!-- Mobile number input. -->
       <div class="form-group">
         <label for="mobileNumber">Mobile Number</label>
         <input
@@ -203,6 +209,7 @@
         />
       </div>
 
+      <!-- Password input. -->
       <div class="form-group">
         <label for="password">Password</label>
         <input
@@ -213,6 +220,7 @@
         />
       </div>
 
+      <!-- Password check input. -->
       <div class="form-group">
         <label for="confirmPassword">Confirm Password</label>
         <input
@@ -223,9 +231,11 @@
         />
       </div>
 
+      <!-- This button creates the new account. -->
       <button type="submit" class="auth-button">Create Account</button>
     </form>
 
+    <!-- This helps users go back to login if they already have an account. -->
     <div class="auth-link">
       <p>Already have an account? <a href="login.html">Login here</a></p>
     </div>

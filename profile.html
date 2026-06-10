@@ -18,12 +18,14 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-lang="en">
+  <!-- This is the top bar on the profile page. -->
   <header class="top-header">
+    <!-- This part shows the app name. -->
     <div class="logo-block">
       <p class="logo-kicker">Farmer Community</p>
       <h1 class="logo-title">Khet-Khamar</h1>
     </div>
-    <!-- Matched header actions from index.html -->
+    <!-- These buttons handle login, signup, and logout. -->
     <div class="header-actions">
       <div id="authLinks" class="auth-links">
         <a href="login.html" id="loginLink" class="auth-btn" style="display: none;">Login</a>
@@ -33,18 +35,22 @@
     </div>
   </header>
 
+  <!-- This main area holds the whole profile page. -->
   <main id="profilePage" class="main-content profile-main">
+    <!-- This box shows the user's name, role, and stats. -->
     <section id="profileCard" class="profile-card" aria-label="Profile summary">
       <!-- Injected via JS -->
     </section>
 
+    <!-- This area is for profile action buttons. -->
     <section id="profileActions" class="profile-actions" aria-label="Profile actions"></section>
 
-    <!-- Logout for profile owner -->
+    <!-- This logout button is for the profile owner. -->
     <div id="profileLogoutWrap" style="display:none; text-align: center; margin-top: 1rem; margin-bottom: 2rem;">
       <button id="profileLogoutBtn" class="action-btn secondary" style="width: 100%;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
     </div>
 
+    <!-- This area shows only the user's own posts. -->
     <section class="profile-panel" aria-label="Profile posts">
       <div class="section-header compact">
         <h2>My Posts</h2>
@@ -54,14 +60,14 @@
       </div>
     </section>
 
-    <!-- Hidden advanced panels for future features -->
+  <!-- These hidden boxes are saved for later features. -->
     <section id="sellerReviewsPanel" class="profile-panel" style="display: none;" aria-label="Seller reviews"></section>
     <section id="adminToolsPanel" class="profile-panel" style="display: none;" aria-label="Admin tools"></section>
     <section id="likedPostsPanel" class="profile-panel" style="display: none;" aria-label="Liked posts"></section>
     <section id="commentedPostsPanel" class="profile-panel" style="display: none;" aria-label="Commented posts"></section>
   </main>
 
-  <!-- Bottom Navigation matching index.html -->
+  <!-- This bottom menu helps move between pages. -->
   <nav class="bottom-nav" aria-label="Bottom navigation">
     <a class="nav-item" href="index.html" aria-label="Home">
       <i class="fa-solid fa-house"></i>

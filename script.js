@@ -4,12 +4,18 @@
 // ==========================================
 // 1. DUMMY DATA & CONSTANTS
 // ==========================================
+// Saves the feed posts in the browser.
 const FEED_KEY = "kk_demo_feed_v2"; // Updated to force fresh feed load
+// Saves the current signed-in user in the browser.
 const USER_KEY = "kk_demo_user";
+// Saves the marketplace listings in the browser.
 const MARKET_KEY = "kk_demo_market_v2";
+// Saves which posts each user has liked.
 const LIKES_KEY = "kk_post_likes";
+// Saves the full list of accounts in the browser.
 const USERS_KEY = "kk_demo_users";
 
+// Starter accounts used when the app opens for the first time.
 const DEMO_USERS = [
   { id: 1, mobile_number: "01700000001", password: "password123", full_name: "Rahim Uddin", role: "Farmer" },
   { id: 2, mobile_number: "01700000002", password: "expert123", full_name: "Dr. Nusrat Rahman", role: "Verified Expert" },
@@ -25,6 +31,7 @@ const DEMO_USERS = [
   { id: 12, mobile_number: "01700000012", password: "rima123", full_name: "Rima Khatun", role: "Farmer" },
 ];
 
+// Starter feed posts shown when there is no saved feed yet.
 const INITIAL_POSTS = [
   { id: 101, authorName: "Jalal Mia", created_at: "10 mins ago", text_content: "Prepared raised beds for okra today. Soil moisture is stable.", image_url: "", likesCount: 12, commentsCount: 3 },
   { id: 102, authorName: "Rahim Uddin", created_at: "1 hour ago", text_content: "Irrigated the paddy field early morning to reduce evaporation loss.", image_url: "", likesCount: 8, commentsCount: 1 },
@@ -40,6 +47,7 @@ const INITIAL_POSTS = [
   { id: 112, authorName: "Rahim Uddin", created_at: "4 days ago", text_content: "Using pheromone traps reduced insect pressure significantly.", image_url: "", likesCount: 31, commentsCount: 7 },
 ];
 
+// Starter marketplace listings shown when there is no saved market yet.
 const INITIAL_MARKET_ADS = [
   { id: 201, vendorName: "Hasan Traders", product_title: "Hybrid Tomato Seeds", description: "Early flowering variety, high yield", price: 850, category: "Seeds", location: "Gazipur", quantity: 200, unit: "kg" },
   { id: 202, vendorName: "Hasan Traders", product_title: "Potassium Fertilizer (50kg)", description: "NPK 0-0-60 for fruiting stage", price: 2500, category: "Fertilizer", location: "Gazipur", quantity: 100, unit: "bag" },
@@ -58,11 +66,16 @@ const INITIAL_MARKET_ADS = [
 // 2. HELPER FUNCTIONS
 // ==========================================
 function getUser() {
+  // Gets the user who is currently signed in.
+  // Reads the saved signed-in user text from the browser.
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
+    // Turns the saved text back into a user object.
     const sessionUser = JSON.parse(raw);
+    // Gets the full list of users so we can refresh the role.
     const users = getUsers();
+    // Finds the newest version of this same user account.
     const latest = users.find(u => u.id === sessionUser.id);
     if (latest) return { ...sessionUser, role: latest.role };
     return sessionUser;
@@ -70,12 +83,16 @@ function getUser() {
 }
 
 function getInitials(name) {
+  // Turns a full name into short initials.
+  // Cleans the name so weird spaces do not cause problems.
   const safeName = String(name || "Anonymous").trim();
+  // Splits the name into pieces like first name and last name.
   const parts = safeName.split(/\s+/).filter(Boolean);
   return (parts[0]?.[0] || "A") + (parts[1]?.[0] || "K");
 }
 
 function escapeHtml(value) {
+  // Makes text safe to place inside HTML.
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -85,27 +102,36 @@ function escapeHtml(value) {
 }
 
 function ownsContent(contentOwnerId, contentOwnerName, user) {
+  // Checks if this user made the post or listing.
   if (!user) return false;
   if (contentOwnerId != null && Number(contentOwnerId) === Number(user.id)) return true;
   return String(contentOwnerName || "") === String(user.full_name || "");
 }
 
 function closeOwnerMenus(scope = document) {
+  // Closes any open pen menus.
   scope.querySelectorAll(".owner-menu.open").forEach(menu => menu.classList.remove("open"));
 }
 
 function getUserLikes(userId) {
+  // Gets the list of posts this user already liked.
   try {
+    // Reads the saved like map from the browser.
     const data = JSON.parse(localStorage.getItem(LIKES_KEY) || "{}");
     return data[userId] || [];
   } catch { return []; }
 }
 
 function toggleUserLike(userId, postId) {
+  // Adds or removes one like for this user.
+  // Starts with an empty like map.
   let data = {};
   try { data = JSON.parse(localStorage.getItem(LIKES_KEY) || "{}"); } catch {}
+  // Gets the posts this user already liked.
   const likes = data[userId] || [];
+  // Looks for the post inside the liked list.
   const idx = likes.indexOf(postId);
+  // True means the post was not liked before.
   const isNowLiked = idx === -1;
   if (isNowLiked) likes.push(postId);
   else likes.splice(idx, 1);
@@ -115,20 +141,26 @@ function toggleUserLike(userId, postId) {
 }
 
 function getUsers() {
+  // Gets all saved accounts.
   try {
+    // Reads the saved user list from the browser.
     const stored = localStorage.getItem(USERS_KEY);
     if (stored) return JSON.parse(stored);
   } catch {}
+  // Makes a fresh copy of the demo users.
   const copy = DEMO_USERS.map(u => ({ ...u }));
   localStorage.setItem(USERS_KEY, JSON.stringify(copy));
   return copy;
 }
 
 function saveUsers(users) {
+  // Saves all accounts back to the browser.
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
 function attachDisabledNavHandlers() {
+  // Stops links that are meant to stay inactive for now.
+  // Finds every link marked as disabled.
   const disabledLinks = document.querySelectorAll('[data-disabled-nav="true"]');
   disabledLinks.forEach((link) => {
     link.addEventListener("click", (event) => event.preventDefault());
@@ -139,6 +171,8 @@ function attachDisabledNavHandlers() {
 // 3. STORAGE FUNCTIONS (FEED & MARKET)
 // ==========================================
 function getPosts() {
+  // Gets all feed posts.
+  // Reads the saved feed text from the browser.
   const existing = localStorage.getItem(FEED_KEY);
   if (existing) {
     try { return JSON.parse(existing); } 
@@ -149,10 +183,13 @@ function getPosts() {
 }
 
 function savePosts(posts) {
+  // Saves all feed posts back to the browser.
   localStorage.setItem(FEED_KEY, JSON.stringify(posts));
 }
 
 function getMarketAds() {
+  // Gets all marketplace listings.
+  // Reads the saved marketplace text from the browser.
   const existing = localStorage.getItem(MARKET_KEY);
   if (existing) {
     try { return JSON.parse(existing); } 
@@ -163,6 +200,7 @@ function getMarketAds() {
 }
 
 function saveMarketAds(ads) {
+  // Saves all marketplace listings back to the browser.
   localStorage.setItem(MARKET_KEY, JSON.stringify(ads));
 }
 
@@ -170,10 +208,16 @@ function saveMarketAds(ads) {
 // 4. PAGE INITIALIZATION FUNCTIONS
 // ==========================================
 function initGlobalAuth() {
+  // Shows or hides login links based on whether the user is signed in.
+  // Gets the current signed-in user.
   const user = getUser();
+  // Finds the logout button in the header.
   const logoutBtn = document.getElementById("logoutBtn");
+  // Finds the login link in the header.
   const loginLink = document.getElementById("loginLink");
+  // Finds the signup link in the header.
   const signupLink = document.getElementById("signupLink");
+  // Finds the guest-only message area.
   const guestModePrompt = document.getElementById("guestModePrompt");
 
   if (document.getElementById("loginForm") || document.getElementById("signupForm")) return; // Skip if on login or signup page
@@ -198,12 +242,18 @@ function initGlobalAuth() {
 }
 
 function initLoginPage() {
+  // Handles the login form on the login page.
+  // Gets the login form.
   const form = document.getElementById("loginForm");
   if (!form) return;
 
+  // Gets the error message box.
   const errorMessage = document.getElementById("errorMessage");
+  // Gets the success message box.
   const successMessage = document.getElementById("successMessage");
+  // Gets the mobile number field.
   const mobileInput = document.getElementById("mobileNumber");
+  // Gets the password field.
   const passwordInput = document.getElementById("password");
 
   if (getUser()) {
@@ -213,13 +263,17 @@ function initLoginPage() {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    // Saves the entered mobile number.
     const mobileNumber = mobileInput.value.trim();
+    // Saves the entered password.
     const password = passwordInput.value;
 
     errorMessage.classList.remove("show");
     successMessage.classList.remove("show");
 
+    // Gets all saved accounts.
     const allUsers = getUsers();
+    // Finds the matching account.
     const user = allUsers.find(
       (item) => item.mobile_number === mobileNumber && item.password === password
     );
@@ -230,6 +284,7 @@ function initLoginPage() {
       return;
     }
 
+    // Stores the signed-in user details for this session.
     const sessionUser = { id: user.id, full_name: user.full_name, mobile_number: user.mobile_number, role: user.role };
     localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
     
@@ -240,14 +295,22 @@ function initLoginPage() {
 }
 
 function initSignupPage() {
+  // Handles the signup form on the signup page.
+  // Gets the signup form.
   const form = document.getElementById("signupForm");
   if (!form) return;
 
+  // Gets the error message box.
   const errorMessage = document.getElementById("errorMessage");
+  // Gets the success message box.
   const successMessage = document.getElementById("successMessage");
+  // Gets the full name field.
   const fullNameInput = document.getElementById("fullName");
+  // Gets the mobile number field.
   const mobileInput = document.getElementById("mobileNumber");
+  // Gets the password field.
   const passwordInput = document.getElementById("password");
+  // Gets the confirm password field.
   const confirmPasswordInput = document.getElementById("confirmPassword");
 
   if (getUser()) {
@@ -257,9 +320,13 @@ function initSignupPage() {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
+    // Saves the entered full name.
     const fullName = fullNameInput.value.trim();
+    // Saves the entered mobile number.
     const mobileNumber = mobileInput.value.trim();
+    // Saves the entered password.
     const password = passwordInput.value;
+    // Saves the entered confirmation password.
     const confirmPassword = confirmPasswordInput.value;
 
     errorMessage.classList.remove("show");
@@ -285,7 +352,9 @@ function initSignupPage() {
     }
 
     // Check if mobile number already exists
+    // Gets all saved accounts.
     const allUsers = getUsers();
+    // Checks if the mobile number is already used.
     const existingUser = allUsers.find(u => u.mobile_number === mobileNumber);
     if (existingUser) {
       errorMessage.textContent = "This mobile number is already registered. Please login or use a different number.";
@@ -294,7 +363,9 @@ function initSignupPage() {
     }
 
     // Create new user with max ID + 1, default role is Farmer (admin assigns roles)
+    // Finds the next account number.
     const maxId = Math.max(...allUsers.map(u => u.id), 0);
+    // Creates the new saved account.
     const newUser = {
       id: maxId + 1,
       mobile_number: mobileNumber,
@@ -310,6 +381,7 @@ function initSignupPage() {
     successMessage.classList.add("show");
     
     // Auto-login
+    // Stores the new user as the current session.
     const sessionUser = { id: newUser.id, full_name: newUser.full_name, mobile_number: newUser.mobile_number, role: newUser.role };
     localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
     
@@ -318,27 +390,41 @@ function initSignupPage() {
 }
 
 function initFeedPage() {
+  // Handles the main feed page.
+  // Finds the feed container.
   const feedList = document.querySelector(".feed-list");
+  // Finds the post composer card.
   const createPostCard = document.getElementById("createPostCard");
   if (!feedList || !createPostCard) return; // Only run on homepage where post creation exists
 
+  // Gets the current user.
   const user = getUser();
+  // Finds the avatar in the composer.
   const composerAvatar = document.querySelector(".avatar-owner");
+  // Finds the post text box.
   const postTextInput = document.getElementById("postText");
+  // Finds the post button.
   const postBtn = document.querySelector(".post-btn");
+  // Finds the image picker.
   const postPhotoInput = document.getElementById("postPhoto");
+  // Finds the image preview wrapper.
   const postImagePreviewWrap = document.getElementById("postImagePreviewWrap");
+  // Finds the image preview itself.
   const postImagePreview = document.getElementById("postImagePreview");
+  // Finds the remove-image button.
   const removePostImageBtn = document.getElementById("removePostImage");
+  // Keeps track of which post is being edited.
   let editingPostId = null;
 
   if (composerAvatar && user) {
     composerAvatar.textContent = getInitials(user.full_name);
   }
 
+  // Keeps the chosen image data for the post.
   let selectedImageData = "";
 
   function clearPreview() {
+    // Clears the chosen image.
     selectedImageData = "";
     if (postImagePreview) postImagePreview.src = "";
     if (postImagePreviewWrap) postImagePreviewWrap.hidden = true;
@@ -346,6 +432,7 @@ function initFeedPage() {
   }
 
   function resetComposer() {
+    // Stops edit mode and resets the composer.
     editingPostId = null;
     if (postBtn) postBtn.textContent = "Post";
     if (postTextInput) postTextInput.value = "";
@@ -353,6 +440,7 @@ function initFeedPage() {
   }
 
   function beginEditPost(postId) {
+    // Loads one post into the composer for editing.
     const posts = getPosts();
     const post = posts.find(p => p.id === postId);
     if (!post || !ownsContent(post.authorId, post.authorName, user)) return;
@@ -384,9 +472,13 @@ function initFeedPage() {
   if (removePostImageBtn) removePostImageBtn.addEventListener("click", clearPreview);
 
   function renderFeedPosts() {
+    // Rebuilds the feed cards from saved posts.
     const user = getUser();
+    // Gets the posts this user already liked.
     const userLikes = user ? getUserLikes(user.id) : [];
+    // Checks whether the current user is an admin.
     const adminUser = user?.role === "Admin";
+    // Gets all saved posts.
     const posts = getPosts();
     feedList.innerHTML = posts.map((post, index) => {
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
@@ -631,19 +723,31 @@ function initFeedPage() {
 }
 
 function initMarketplacePage() {
+  // Handles the marketplace page.
+  // Finds the marketplace grid.
   const marketGrid = document.querySelector(".market-grid");
+  // Finds the marketplace submit button.
   const marketSubmitBtn = document.querySelector(".marketplace-form .submit-btn");
+  // Finds the marketplace clear button.
   const marketClearBtn = document.querySelector(".marketplace-form .cancel-btn");
+  // Finds the image picker for listings.
   const adImageInput = document.getElementById("adImage");
+  // Finds the image preview wrapper for listings.
   const adImagePreview = document.getElementById("adImagePreview");
+  // Finds the image preview image element.
   const adImagePreviewImg = document.getElementById("adImagePreviewImg");
+  // Finds the remove-image button for listings.
   const removeAdImageBtn = document.getElementById("removeAdImage");
+  // Finds the card that holds the posting form.
   const sellerPostingCard = document.querySelector(".seller-posting-card");
 
   if (!marketGrid) return;
 
+  // Gets the current user.
   const user = getUser();
+  // Checks whether this user can post listings.
   const isSeller = user && user.role === "General Vendor";
+  // Stores which listing is being edited.
   let editingAdId = null;
 
   // Show/hide posting form based on seller status
@@ -655,15 +759,19 @@ function initMarketplacePage() {
     }
   }
 
+  // Stores the chosen listing image.
   let selectedAdImage = null;
 
   // Image preview handling
   if (adImageInput) {
     adImageInput.addEventListener("change", () => {
+      // Gets the chosen image file.
       const file = adImageInput.files[0];
       if (!file) return;
+      // Reads the file so it can be shown as a preview.
       const reader = new FileReader();
       reader.onload = (e) => {
+        // Saves the preview image data.
         selectedAdImage = e.target.result;
         if (adImagePreviewImg) adImagePreviewImg.src = selectedAdImage;
         if (adImagePreview) adImagePreview.style.display = "block";
@@ -682,6 +790,7 @@ function initMarketplacePage() {
   }
 
   // Contact modal — injected once, reused
+  // Creates the contact popup box.
   const modal = document.createElement("div");
   modal.id = "contactModal";
   modal.innerHTML = `
@@ -702,7 +811,9 @@ function initMarketplacePage() {
     document.getElementById("contactModalOverlay").style.display = "none";
   }
   function openModal(vendorName, vendorPhone) {
+    // Fills the popup with seller details.
     document.getElementById("contactModalSeller").textContent = vendorName;
+    // Finds the phone link inside the popup.
     const phoneEl = document.getElementById("contactModalPhone");
     phoneEl.textContent = vendorPhone;
     phoneEl.href = `tel:${vendorPhone}`;
@@ -715,6 +826,7 @@ function initMarketplacePage() {
   });
 
   function renderAds() {
+    // Rebuilds the marketplace cards from saved listings.
     const ads = getMarketAds();
 
     if (ads.length === 0) {
@@ -723,10 +835,13 @@ function initMarketplacePage() {
     }
 
     marketGrid.innerHTML = ads.map(ad => {
+      // Uses the listing image if one exists.
       const imageMarkup = ad.image_url
         ? `<img src="${escapeHtml(ad.image_url)}" alt="${escapeHtml(ad.product_title)}" class="market-card-img" />`
         : "";
+      // Checks whether the current user owns this listing.
       const canManageAd = ownsContent(ad.vendorId, ad.vendorName, user);
+      // Builds the owner pen menu for edit/delete.
       const ownerButtons = canManageAd ? `
             <div style="position:relative; margin-left:8px;">
               <button class="submit-btn" style="padding: 8px 12px; font-size: 14px; min-width: 44px;" data-action="owner-menu-toggle-ad" data-ad-id="${ad.id}" aria-label="Listing actions"><i class="fa-solid fa-pen"></i></button>
@@ -762,6 +877,7 @@ function initMarketplacePage() {
 
   // Event delegation for contact button
   marketGrid.addEventListener("click", (e) => {
+    // Opens the owner menu when the pen is clicked.
     const menuToggle = e.target.closest('[data-action="owner-menu-toggle-ad"]');
     if (menuToggle) {
       const wrap = menuToggle.closest("div[style*='position:relative']");
@@ -800,6 +916,7 @@ function initMarketplacePage() {
       return;
     }
 
+    // Opens the seller contact popup.
     const contactBtn = e.target.closest('[data-action="contact"]');
     if (!contactBtn) return;
     const adId = Number(contactBtn.dataset.adId);
@@ -809,6 +926,7 @@ function initMarketplacePage() {
   });
 
   function beginEditAd(adId) {
+    // Loads one listing into the form so it can be edited.
     const ad = getMarketAds().find(item => item.id === adId);
     if (!ad || !ownsContent(ad.vendorId, ad.vendorName, user)) return;
     editingAdId = adId;
@@ -827,6 +945,7 @@ function initMarketplacePage() {
   }
 
   function clearMarketForm() {
+    // Resets the listing form back to empty.
     document.querySelectorAll('.marketplace-form input, .marketplace-form textarea, .marketplace-form select').forEach(el => el.value = '');
     selectedAdImage = null;
     editingAdId = null;
@@ -843,23 +962,32 @@ function initMarketplacePage() {
     marketSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
 
+      // Stops the action if nobody is signed in.
       if (!user) {
         alert("You must be logged in to post a product.");
         window.location.href = "login.html";
         return;
       }
 
+      // Stops the action if this user is not a vendor.
       if (!isSeller) {
         alert("Only sellers (vendors) can post products. Please create a vendor account to post.");
         return;
       }
 
+      // Gets the product title.
       const title = document.getElementById("adTitle").value;
+      // Gets the product description.
       const desc = document.getElementById("adDescription").value;
+      // Gets the product price.
       const price = document.getElementById("adPrice").value;
+      // Gets the product quantity.
       const quantity = document.getElementById("adQuantity").value;
+      // Gets the product unit.
       const unit = document.getElementById("adUnit").value;
+      // Gets the product category.
       const category = document.getElementById("adCategory").value;
+      // Gets the product location.
       const location = document.getElementById("adLocation").value;
 
       if (!title || !price || !category || !location) {
@@ -867,9 +995,11 @@ function initMarketplacePage() {
         return;
       }
 
+      // Gets all saved listings.
       const ads = getMarketAds();
 
       if (editingAdId) {
+        // Finds the listing being edited.
         const ad = ads.find(item => item.id === editingAdId);
         if (!ad || !ownsContent(ad.vendorId, ad.vendorName, user)) {
           alert("You can only edit your own listing.");
@@ -891,6 +1021,7 @@ function initMarketplacePage() {
         saveMarketAds(ads);
         alert("Product updated successfully!");
       } else {
+        // Creates the new listing to save.
         const newAd = {
           id: Date.now(),
           vendorId: user.id,
@@ -920,7 +1051,9 @@ function initMarketplacePage() {
 }
 
 function renderAdminPanel(panel) {
+  // Builds the admin tools area.
   panel.style.display = "block";
+  // Lists the roles an admin can assign.
   const ROLES = ["Farmer", "Verified Expert", "General Vendor", "Admin"];
 
   panel.innerHTML = `
@@ -936,9 +1069,11 @@ function renderAdminPanel(panel) {
   `;
 
   function renderTab(tab) {
+    // Gets the admin tab content area.
     const content = document.getElementById("adminTabContent");
 
     if (tab === "posts") {
+      // Gets all feed posts for admin review.
       const posts = getPosts();
       if (posts.length === 0) { content.innerHTML = `<p class="admin-empty">No posts yet.</p>`; return; }
       content.innerHTML = posts.map(p => `
@@ -958,6 +1093,7 @@ function renderAdminPanel(panel) {
       `).join("");
 
     } else if (tab === "market") {
+      // Gets all marketplace listings for admin review.
       const ads = getMarketAds();
       if (ads.length === 0) { content.innerHTML = `<p class="admin-empty">No listings yet.</p>`; return; }
       content.innerHTML = ads.map(a => `
@@ -971,6 +1107,7 @@ function renderAdminPanel(panel) {
       `).join("");
 
     } else if (tab === "users") {
+      // Gets all saved accounts for role editing.
       const users = getUsers();
       content.innerHTML = users.map(u => `
         <div class="admin-list-item">
@@ -988,6 +1125,7 @@ function renderAdminPanel(panel) {
 
     // Bind actions inside tab
     content.addEventListener("click", (e) => {
+      // Finds the clicked admin action button.
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
       const action = btn.dataset.action;
@@ -1016,16 +1154,22 @@ function renderAdminPanel(panel) {
         renderTab("market");
       }
       if (action === "panel-save-role") {
+        // Gets the user being edited.
         const userId = Number(btn.dataset.userId);
+        // Finds the role dropdown for that user.
         const select = content.querySelector(`.admin-role-select[data-user-id="${userId}"]`);
+        // Reads the new role from the dropdown.
         const newRole = select?.value;
         if (!newRole) return;
+        // Gets all accounts so the selected one can be updated.
         const users = getUsers();
+        // Finds the matching account.
         const target = users.find(u => u.id === userId);
         if (target) {
           target.role = newRole;
           saveUsers(users);
           // Update session if admin changed their own role
+          // Refreshes the current session if the admin changed their own role.
           const currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
           if (currentUser?.id === userId) {
             localStorage.setItem(USER_KEY, JSON.stringify({ ...currentUser, role: newRole }));
@@ -1060,15 +1204,23 @@ initMarketplacePage();
 initProfilePage();
 attachDisabledNavHandlers();
 function initProfilePage() {
+  // Handles the profile page.
+  // Finds the profile card area.
   const profileCard = document.getElementById("profileCard");
+  // Finds the profile action area.
   const profileActions = document.getElementById("profileActions");
+  // Finds the logout wrapper.
   const profileLogoutWrap = document.getElementById("profileLogoutWrap");
+  // Finds the logout button.
   const profileLogoutBtn = document.getElementById("profileLogoutBtn");
+  // Finds the user's post list.
   const profilePostsList = document.getElementById("profilePosts");
+  // Finds the admin panel area.
   const adminToolsPanel = document.getElementById("adminToolsPanel");
 
   if (!profileCard) return; // Exit if not on profile page
 
+  // Gets the signed-in user.
   const user = getUser();
   if (!user) {
     window.location.href = "login.html";
@@ -1076,8 +1228,11 @@ function initProfilePage() {
   }
 
   // 1. Render Profile Card
+  // Builds the user's avatar initials.
   const initials = getInitials(user.full_name);
+  // Gets all saved posts.
   const allPosts = getPosts();
+  // Keeps only the posts owned by this user.
   const userPosts = allPosts.filter(p => ownsContent(p.authorId, p.authorName, user));
   
   // Using the image's exact structure
@@ -1112,15 +1267,21 @@ function initProfilePage() {
   }
 
   // 3. Render User's Own Posts
+  // Gets the posts this user has liked.
   const userLikes = getUserLikes(user.id);
   if (userPosts.length === 0) {
     profilePostsList.innerHTML = `<p style="text-align:center; color: #718096; padding: 20px;">You haven't posted anything yet.</p>`;
   } else {
     profilePostsList.innerHTML = userPosts.map((post, index) => {
+      // Picks one of two avatar styles.
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
+      // Shows the image if this post has one.
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
+      // Checks whether the user already liked this post.
       const isLiked = userLikes.includes(post.id);
+      // Checks whether this user can edit or delete this post.
       const canManagePost = ownsContent(post.authorId, post.authorName, user);
+      // Builds the comment list shown under the post.
       const existingComments = (post.comments || []).map(c => `
         <div class="comment-item">
           <span class="comment-author">${escapeHtml(c.authorName)}</span>
@@ -1128,6 +1289,7 @@ function initProfilePage() {
           <span class="comment-time">${escapeHtml(c.created_at)}</span>
         </div>
       `).join("");
+      // Builds the owner pen menu for the post.
       const ownerButtons = canManagePost ? `
           <button type="button" class="pill-btn secondary" style="padding:6px 12px; font-size:12px;" data-action="edit-post" data-post-id="${post.id}">Edit</button>
           <button type="button" class="pill-btn secondary" style="padding:6px 12px; font-size:12px;" data-action="delete-post" data-post-id="${post.id}">Delete</button>` : "";
@@ -1166,13 +1328,19 @@ function initProfilePage() {
   // Event delegation on profile posts list
   if (profilePostsList) {
     profilePostsList.addEventListener("click", (e) => {
+      // Checks for a like button click.
       const likeBtn = e.target.closest('[data-action="like"]');
       if (likeBtn) {
+        // Reads the post id from the clicked heart button.
         const postId = Number(likeBtn.dataset.postId);
+        // Flips the like on or off for this user.
         const isNowLiked = toggleUserLike(user.id, postId);
+        // Gets the latest saved posts.
         const posts = getPosts();
+        // Finds the exact post that should change.
         const post = posts.find(p => p.id === postId);
         if (post) {
+          // Adds or removes one like.
           post.likesCount = (Number(post.likesCount) || 0) + (isNowLiked ? 1 : -1);
           savePosts(posts);
         }
@@ -1184,11 +1352,15 @@ function initProfilePage() {
         return;
       }
 
+      // Checks for a comment button click.
       const commentBtn = e.target.closest('[data-action="comment"]');
       if (commentBtn) {
+        // Reads the post id from the button.
         const postId = commentBtn.dataset.postId;
+        // Finds the comment box for that post.
         const section = document.getElementById(`comment-section-${postId}`);
         if (section) {
+          // Checks if the comment box is already open.
           const isVisible = section.style.display !== "none";
           section.style.display = isVisible ? "none" : "block";
           if (!isVisible) section.querySelector(".comment-textarea")?.focus();
@@ -1196,13 +1368,19 @@ function initProfilePage() {
         return;
       }
 
+      // Starts editing the clicked post.
       const editPostBtn = e.target.closest('[data-action="edit-post"]');
       if (editPostBtn) {
+        // Reads the post id from the menu item.
         const postId = Number(editPostBtn.dataset.postId);
+        // Gets the current saved posts.
         const posts = getPosts();
+        // Finds the exact post to edit.
         const post = posts.find(p => p.id === postId);
         if (!post || !ownsContent(post.authorId, post.authorName, user)) return;
+        // Puts the old text back into the post box.
         postTextInput.value = post.text_content || "";
+        // Puts the old image back into the preview.
         selectedImageData = post.image_url || "";
         if (postImagePreview && selectedImageData) postImagePreview.src = selectedImageData;
         if (postImagePreviewWrap) postImagePreviewWrap.hidden = !selectedImageData;
@@ -1211,32 +1389,46 @@ function initProfilePage() {
         return;
       }
 
+      // Deletes the clicked post.
       const deletePostBtn = e.target.closest('[data-action="delete-post"]');
       if (deletePostBtn) {
+        // Stops the delete if the user says no.
         if (!confirm("Delete your post permanently?")) return;
+        // Reads the post id from the menu item.
         const postId = Number(deletePostBtn.dataset.postId);
+        // Removes that post from the saved list.
         savePosts(getPosts().filter(p => p.id !== postId));
         renderFeedPosts();
         return;
       }
 
+      // Saves a new comment under the post.
       const submitBtn = e.target.closest('[data-action="submit-comment"]');
       if (submitBtn) {
+        // Reads the post id from the submit button.
         const postId = Number(submitBtn.dataset.postId);
+        // Finds the comment box for that post.
         const section = document.getElementById(`comment-section-${postId}`);
+        // Finds the text box where the user typed.
         const textarea = section?.querySelector(".comment-textarea");
+        // Gets the text the user typed.
         const text = textarea?.value.trim();
         if (!text) return;
+        // Gets the saved posts list.
         const posts = getPosts();
+        // Finds the post that should receive the comment.
         const post = posts.find(p => p.id === postId);
         if (post) {
           if (!post.comments) post.comments = [];
+          // Adds the new comment to the list.
           post.comments.push({ authorName: user.full_name, text, created_at: "Just now" });
+          // Increases the comment count by one.
           post.commentsCount = (Number(post.commentsCount) || 0) + 1;
           savePosts(posts);
           const article = profilePostsList.querySelector(`[data-post-id="${postId}"]`);
           const countEl = article?.querySelector(".comment-count");
           if (countEl) countEl.textContent = post.commentsCount;
+          // Adds the comment to the visible list right away.
           const commentList = section.querySelector(".comment-list");
           const newComment = document.createElement("div");
           newComment.className = "comment-item";

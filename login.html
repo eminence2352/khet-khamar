@@ -194,16 +194,21 @@
   </style>
 </head>
 <body data-lang="en">
+  <!-- This card holds the whole login form. -->
   <div class="auth-container">
+    <!-- This tells the user what app they are on. -->
     <div class="auth-header">
       <h1>Khet-Khamar</h1>
       <p data-i18n="appTagline">Farmer Community</p>
     </div>
 
+    <!-- These boxes show success or error messages. -->
     <div class="success-message" id="successMessage"></div>
     <div class="error-message" id="errorMessage"></div>
 
+    <!-- This is where the user types their login info. -->
     <form class="auth-form" id="loginForm">
+      <!-- Mobile number input. -->
       <div class="form-group">
         <label for="mobileNumber">Mobile Number</label>
         <input
@@ -214,6 +219,7 @@
         />
       </div>
 
+      <!-- Password input. -->
       <div class="form-group">
         <label for="password">Password</label>
         <input
@@ -224,9 +230,11 @@
         />
       </div>
 
+      <!-- This button sends the login form. -->
       <button type="submit" class="auth-button">Login</button>
     </form>
 
+    <!-- These are demo accounts for quick testing. -->
     <div class="dummy-creds">
       <p>Dummy Login Options</p>
       <ul>
@@ -237,6 +245,7 @@
       </ul>
     </div>
 
+  <!-- This helps users move to the signup page. -->
     <div class="auth-link">
       <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
       <p style="margin-top: 10px; font-size: 12px; color: #95a5a6;">Or use demo credentials above</p>

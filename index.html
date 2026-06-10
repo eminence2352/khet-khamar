@@ -17,11 +17,14 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body data-lang="en">
+  <!-- This is the top bar. It shows the app name and the login/logout buttons. -->
   <header class="top-header">
+    <!-- This part holds the app name. -->
     <div class="logo-block">
       <p class="logo-kicker" data-i18n="appTagline">Farmer Community</p>
       <h1 class="logo-title">Khet-Khamar</h1>
     </div>
+    <!-- These buttons let the user sign in, sign up, or log out. -->
     <div class="header-actions">
       <div id="authLinks" class="auth-links">
         <a href="login.html" id="loginLink" class="auth-btn" data-i18n="login" style="display: none;">Login</a>
@@ -32,15 +35,17 @@
   </header>
 
   <main class="main-content">
-    <!-- Guest Login Prompt -->
+    <!-- This message appears when the user is not signed in. -->
     <div id="guestModePrompt" class="guest-mode-banner" style="display: none;">
       <p data-i18n="guestModeMsg">You're browsing as a guest. <a href="login.html" data-i18n="loginToReact">Login to post and react</a></p>
     </div>
 
-    <!-- Post Creation Section (Hidden for guests) -->
+    <!-- This box lets a signed-in user write a new post. -->
     <section id="createPostCard" class="create-post-card" aria-label="Create post section">
+      <!-- This row shows the user's avatar and typing box. -->
       <div class="create-post-top">
         <div class="avatar avatar-owner">AK</div>
+        <!-- The big text box is where the user writes the update. -->
         <label class="post-input-wrap" for="postText">
           <textarea
             id="postText"
@@ -50,10 +55,12 @@
           ></textarea>
         </label>
       </div>
+      <!-- This area shows the chosen image before posting. -->
       <div id="postImagePreviewWrap" class="composer-image-preview" hidden>
         <img id="postImagePreview" class="composer-image-preview-img" alt="Selected image preview" />
         <button id="removePostImage" class="composer-image-remove" type="button">Remove image</button>
       </div>
+      <!-- These buttons add a photo or send the post. -->
       <div class="create-post-actions">
         <label for="postPhoto" class="camera-upload" data-i18n="addPhoto">
           <i class="fa-solid fa-camera"></i>
@@ -64,10 +71,11 @@
       </div>
     </section>
 
-    <!-- Social Feed -->
+    <!-- This is the list of posts from everyone. -->
     <section class="feed-list" aria-label="Social feed"></section>
   </main>
 
+  <!-- This bottom bar helps the user move between the main pages. -->
   <nav class="bottom-nav" aria-label="Bottom navigation">
     <a class="nav-item active" href="index.html" aria-label="Home">
       <i class="fa-solid fa-house"></i>

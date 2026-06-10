@@ -16,12 +16,14 @@
 </head>
 
 <body>
+  <!-- This is the top bar of the news page. -->
   <header class="top-header">
+    <!-- This part shows the app name. -->
     <div class="logo-block">
       <p class="logo-kicker">Farmer Community</p>
       <h1 class="logo-title">Khet-Khamar</h1>
     </div>
-    <!-- Authentication actions matching index.html -->
+    <!-- These buttons handle login, signup, and logout. -->
     <div class="header-actions">
       <div id="authLinks" class="auth-links">
         <a href="login.html" id="loginLink" class="auth-btn" style="display: none;">Login</a>
@@ -31,7 +33,9 @@
     </div>
   </header>
 
+  <!-- This main area holds weather and news. -->
   <main class="main-content news-main">
+    <!-- These buttons switch between weather and news. -->
     <div class="news-tabs">
       <button class="news-tab active" data-tab="weather">
         <i class="fa-solid fa-cloud-sun-rain"></i> Weather
@@ -41,7 +45,7 @@
       </button>
     </div>
 
-    <!-- Weather Tab -->
+  <!-- This area shows the weather report. -->
     <div id="weather" class="news-content active">
       <div class="weather-container" id="weatherContainer">
         <div class="loading-spinner">
@@ -51,7 +55,7 @@
       </div>
     </div>
 
-    <!-- News Tab -->
+    <!-- This area shows the agriculture news stories. -->
     <div id="news" class="news-content">
       <div class="news-grid" id="newsContainer">
         <div class="loading-spinner">
@@ -62,7 +66,7 @@
     </div>
   </main>
 
-  <!-- Bottom Navigation matching index.html -->
+  <!-- This bottom menu helps move between pages. -->
  <nav class="bottom-nav" aria-label="Bottom navigation">
     <a class="nav-item" href="index.html" aria-label="Home">
       <i class="fa-solid fa-house"></i>
@@ -85,7 +89,7 @@
     </a>
   </nav>
 
-  <!-- Link script.js FIRST so we can use its local storage functions -->
+  <!-- Script file with the page logic. -->
   <script src="script.js"></script>
   
   <script>
