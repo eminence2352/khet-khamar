@@ -307,7 +307,7 @@ body {
 .post-actions {
   margin-top: 0.8rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
@@ -318,6 +318,7 @@ body {
   padding: 0.48rem 0.35rem;
   font-size: 0.82rem;
   color: var(--text-dark);
+  width: 100%;
   display: inline-flex;
   justify-content: center;
   align-items: center;
@@ -995,7 +996,6 @@ body {
 .news-share-btn:hover {
   background: #2a3ca8;
   border-color: #2a3ca8;
-}
 }
 
 @media (min-width: 820px) {

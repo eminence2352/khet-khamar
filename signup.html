@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login - Khet-Khamar</title>
+  <title>Sign Up - Khet-Khamar</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -71,7 +71,8 @@
       color: #2c3e50;
     }
 
-    .form-group input {
+    .form-group input,
+    .form-group select {
       padding: 12px 14px;
       border: 2px solid #ecf0f1;
       border-radius: 8px;
@@ -80,7 +81,8 @@
       transition: border-color 0.3s;
     }
 
-    .form-group input:focus {
+    .form-group input:focus,
+    .form-group select:focus {
       outline: none;
       border-color: #2193b0;
     }
@@ -159,29 +161,6 @@
       display: block;
     }
 
-    .dummy-creds {
-      margin-top: 18px;
-      padding: 12px;
-      border-radius: 8px;
-      border: 1px dashed #9bb7c0;
-      background: #f2fbff;
-    }
-
-    .dummy-creds p {
-      margin: 0 0 6px;
-      font-size: 13px;
-      color: #34515a;
-      font-weight: 600;
-    }
-
-    .dummy-creds ul {
-      margin: 0;
-      padding-left: 18px;
-      font-size: 13px;
-      color: #4f6570;
-      line-height: 1.5;
-    }
-
     @media (max-width: 480px) {
       .auth-container {
         padding: 24px;
@@ -203,7 +182,17 @@
     <div class="success-message" id="successMessage"></div>
     <div class="error-message" id="errorMessage"></div>
 
-    <form class="auth-form" id="loginForm">
+    <form class="auth-form" id="signupForm">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input
+          type="text"
+          id="fullName"
+          placeholder="Enter your full name"
+          required
+        />
+      </div>
+
       <div class="form-group">
         <label for="mobileNumber">Mobile Number</label>
         <input
@@ -219,27 +208,26 @@
         <input
           type="password"
           id="password"
-          placeholder="Enter your password"
+          placeholder="Create a password"
           required
         />
       </div>
 
-      <button type="submit" class="auth-button">Login</button>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          placeholder="Confirm your password"
+          required
+        />
+      </div>
+
+      <button type="submit" class="auth-button">Create Account</button>
     </form>
 
-    <div class="dummy-creds">
-      <p>Dummy Login Options</p>
-      <ul>
-        <li>01700000001 / password123</li>
-        <li>01700000002 / expert123</li>
-        <li>01700000003 / seller123</li>
-        <li>01700000004 / admin123</li>
-      </ul>
-    </div>
-
     <div class="auth-link">
-      <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
-      <p style="margin-top: 10px; font-size: 12px; color: #95a5a6;">Or use demo credentials above</p>
+      <p>Already have an account? <a href="login.html">Login here</a></p>
     </div>
   </div>
 

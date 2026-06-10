@@ -84,6 +84,16 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function ownsContent(contentOwnerId, contentOwnerName, user) {
+  if (!user) return false;
+  if (contentOwnerId != null && Number(contentOwnerId) === Number(user.id)) return true;
+  return String(contentOwnerName || "") === String(user.full_name || "");
+}
+
+function closeOwnerMenus(scope = document) {
+  scope.querySelectorAll(".owner-menu.open").forEach(menu => menu.classList.remove("open"));
+}
+
 function getUserLikes(userId) {
   try {
     const data = JSON.parse(localStorage.getItem(LIKES_KEY) || "{}");
@@ -166,7 +176,7 @@ function initGlobalAuth() {
   const signupLink = document.getElementById("signupLink");
   const guestModePrompt = document.getElementById("guestModePrompt");
 
-  if (document.getElementById("loginForm")) return; // Skip if on login page
+  if (document.getElementById("loginForm") || document.getElementById("signupForm")) return; // Skip if on login or signup page
 
   if (user) {
     if (loginLink) loginLink.style.display = "none";
@@ -209,12 +219,13 @@ function initLoginPage() {
     errorMessage.classList.remove("show");
     successMessage.classList.remove("show");
 
-    const user = DEMO_USERS.find(
+    const allUsers = getUsers();
+    const user = allUsers.find(
       (item) => item.mobile_number === mobileNumber && item.password === password
     );
 
     if (!user) {
-      errorMessage.textContent = "Invalid credentials. Use one of the dummy login options.";
+      errorMessage.textContent = "Invalid credentials. Check your mobile number and password.";
       errorMessage.classList.add("show");
       return;
     }
@@ -225,6 +236,84 @@ function initLoginPage() {
     successMessage.textContent = "Login successful! Redirecting...";
     successMessage.classList.add("show");
     setTimeout(() => { window.location.href = "index.html"; }, 600);
+  });
+}
+
+function initSignupPage() {
+  const form = document.getElementById("signupForm");
+  if (!form) return;
+
+  const errorMessage = document.getElementById("errorMessage");
+  const successMessage = document.getElementById("successMessage");
+  const fullNameInput = document.getElementById("fullName");
+  const mobileInput = document.getElementById("mobileNumber");
+  const passwordInput = document.getElementById("password");
+  const confirmPasswordInput = document.getElementById("confirmPassword");
+
+  if (getUser()) {
+    window.location.href = "index.html";
+    return;
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const fullName = fullNameInput.value.trim();
+    const mobileNumber = mobileInput.value.trim();
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    errorMessage.classList.remove("show");
+    successMessage.classList.remove("show");
+
+    // Validation
+    if (!fullName || !mobileNumber || !password || !confirmPassword) {
+      errorMessage.textContent = "Please fill in all fields.";
+      errorMessage.classList.add("show");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      errorMessage.textContent = "Passwords do not match.";
+      errorMessage.classList.add("show");
+      return;
+    }
+
+    if (password.length < 6) {
+      errorMessage.textContent = "Password must be at least 6 characters long.";
+      errorMessage.classList.add("show");
+      return;
+    }
+
+    // Check if mobile number already exists
+    const allUsers = getUsers();
+    const existingUser = allUsers.find(u => u.mobile_number === mobileNumber);
+    if (existingUser) {
+      errorMessage.textContent = "This mobile number is already registered. Please login or use a different number.";
+      errorMessage.classList.add("show");
+      return;
+    }
+
+    // Create new user with max ID + 1, default role is Farmer (admin assigns roles)
+    const maxId = Math.max(...allUsers.map(u => u.id), 0);
+    const newUser = {
+      id: maxId + 1,
+      mobile_number: mobileNumber,
+      password: password,
+      full_name: fullName,
+      role: "Farmer"
+    };
+
+    allUsers.push(newUser);
+    saveUsers(allUsers);
+
+    successMessage.textContent = "Account created successfully! Logging you in...";
+    successMessage.classList.add("show");
+    
+    // Auto-login
+    const sessionUser = { id: newUser.id, full_name: newUser.full_name, mobile_number: newUser.mobile_number, role: newUser.role };
+    localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
+    
+    setTimeout(() => { window.location.href = "index.html"; }, 1000);
   });
 }
 
@@ -241,6 +330,7 @@ function initFeedPage() {
   const postImagePreviewWrap = document.getElementById("postImagePreviewWrap");
   const postImagePreview = document.getElementById("postImagePreview");
   const removePostImageBtn = document.getElementById("removePostImage");
+  let editingPostId = null;
 
   if (composerAvatar && user) {
     composerAvatar.textContent = getInitials(user.full_name);
@@ -253,6 +343,27 @@ function initFeedPage() {
     if (postImagePreview) postImagePreview.src = "";
     if (postImagePreviewWrap) postImagePreviewWrap.hidden = true;
     if (postPhotoInput) postPhotoInput.value = "";
+  }
+
+  function resetComposer() {
+    editingPostId = null;
+    if (postBtn) postBtn.textContent = "Post";
+    if (postTextInput) postTextInput.value = "";
+    clearPreview();
+  }
+
+  function beginEditPost(postId) {
+    const posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post || !ownsContent(post.authorId, post.authorName, user)) return;
+    editingPostId = postId;
+    if (postTextInput) postTextInput.value = post.text_content || "";
+    selectedImageData = post.image_url || "";
+    if (postImagePreview && selectedImageData) postImagePreview.src = selectedImageData;
+    if (postImagePreviewWrap) postImagePreviewWrap.hidden = !selectedImageData;
+    if (postBtn) postBtn.textContent = "Update";
+    createPostCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    postTextInput?.focus();
   }
 
   if (postPhotoInput) {
@@ -282,6 +393,7 @@ function initFeedPage() {
       const initials = getInitials(post.authorName);
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
       const isLiked = userLikes.includes(post.id);
+      const canManagePost = ownsContent(post.authorId, post.authorName, user);
       const existingComments = (post.comments || []).map((c, idx) => `
         <div class="comment-item" data-comment-index="${idx}">
           <span class="comment-author">${escapeHtml(c.authorName)}</span>
@@ -290,6 +402,14 @@ function initFeedPage() {
           ${adminUser ? `<button type="button" class="admin-comment-del" data-action="admin-delete-comment" data-post-id="${post.id}" data-comment-index="${idx}" title="Delete comment"><i class="fa-solid fa-xmark"></i></button>` : ""}
         </div>
       `).join("");
+      const ownerControls = canManagePost ? `
+        <div class="post-owner-actions" style="margin-left:auto; position:relative;">
+          <button type="button" class="pill-btn secondary owner-menu-toggle" style="padding:6px 10px; font-size:12px; min-width:40px;" data-action="owner-menu-toggle" data-post-id="${post.id}" aria-label="Post actions"><i class="fa-solid fa-pen"></i></button>
+          <div class="owner-menu" style="display:none; position:absolute; right:0; top:42px; z-index:10; min-width:120px; background:#fff; border:1px solid #d9e2f2; border-radius:12px; box-shadow:0 10px 24px rgba(21,44,90,.12); overflow:hidden;">
+            <button type="button" class="owner-menu-item" style="width:100%; display:block; padding:10px 14px; border:0; background:#fff; text-align:left;" data-action="edit-post" data-post-id="${post.id}">Edit</button>
+            <button type="button" class="owner-menu-item" style="width:100%; display:block; padding:10px 14px; border:0; background:#fff; text-align:left; color:#b91c1c;" data-action="delete-post" data-post-id="${post.id}">Delete</button>
+          </div>
+        </div>` : "";
       const adminPostBtn = adminUser ? `<button type="button" class="admin-post-del" data-action="admin-delete-post" data-post-id="${post.id}" title="Delete post"><i class="fa-solid fa-trash"></i></button>` : "";
 
       return `<article class="post-card" data-post-id="${post.id}">
@@ -299,6 +419,7 @@ function initFeedPage() {
             <p class="post-user">${escapeHtml(post.authorName)}</p>
             <p class="post-time">${escapeHtml(post.created_at)}</p>
           </div>
+          ${ownerControls}
           ${adminPostBtn}
         </div>
         <p class="post-text">${escapeHtml(post.text_content || "")}</p>
@@ -310,7 +431,6 @@ function initFeedPage() {
           <button type="button" data-action="comment" data-post-id="${post.id}">
             <i class="fa-regular fa-comment"></i> Comment <span class="comment-count">${Number(post.commentsCount) || 0}</span>
           </button>
-          <button type="button"><i class="fa-solid fa-share"></i> Share</button>
         </div>
         <div class="comment-section" id="comment-section-${post.id}" style="display:none;">
           <div class="comment-list">${existingComments}</div>
@@ -328,6 +448,24 @@ function initFeedPage() {
   feedList.addEventListener("click", (e) => {
     const user = getUser();
 
+    const menuToggle = e.target.closest('[data-action="owner-menu-toggle"]');
+    if (menuToggle) {
+      const actionsWrap = menuToggle.closest(".post-owner-actions");
+      const menu = actionsWrap?.querySelector(".owner-menu");
+      if (menu) {
+        const isOpen = menu.classList.contains("open");
+        closeOwnerMenus(feedList);
+        menu.classList.toggle("open", !isOpen);
+        menu.style.display = !isOpen ? "block" : "none";
+      }
+      return;
+    }
+
+    if (!e.target.closest(".post-owner-actions") && !e.target.closest(".owner-menu")) {
+      closeOwnerMenus(feedList);
+      feedList.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+    }
+
     // Admin: delete post
     const adminDelPost = e.target.closest('[data-action="admin-delete-post"]');
     if (adminDelPost) {
@@ -335,6 +473,27 @@ function initFeedPage() {
       const postId = Number(adminDelPost.dataset.postId);
       savePosts(getPosts().filter(p => p.id !== postId));
       adminDelPost.closest("article")?.remove();
+      return;
+    }
+
+    const editPostBtn = e.target.closest('[data-action="edit-post"]');
+    if (editPostBtn) {
+      beginEditPost(Number(editPostBtn.dataset.postId));
+      closeOwnerMenus(feedList);
+      feedList.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+      return;
+    }
+
+    const deletePostBtn = e.target.closest('[data-action="delete-post"]');
+    if (deletePostBtn) {
+      if (!confirm("Delete your post permanently?")) return;
+      const postId = Number(deletePostBtn.dataset.postId);
+      const posts = getPosts().filter(p => p.id !== postId);
+      savePosts(posts);
+      resetComposer();
+      closeOwnerMenus(feedList);
+      feedList.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+      renderFeedPosts();
       return;
     }
 
@@ -431,8 +590,27 @@ function initFeedPage() {
       const text = String(postTextInput?.value || "").trim();
       if (!text && !selectedImageData) return;
 
+      const posts = getPosts();
+
+      if (editingPostId) {
+        const post = posts.find(p => p.id === editingPostId);
+        if (!post || !ownsContent(post.authorId, post.authorName, user)) {
+          alert("You can only edit your own post.");
+          resetComposer();
+          return;
+        }
+
+        post.text_content = text;
+        post.image_url = selectedImageData || "";
+        savePosts(posts);
+        resetComposer();
+        renderFeedPosts();
+        return;
+      }
+
       const newPost = {
         id: Date.now(),
+        authorId: user.id,
         authorName: user.full_name,
         created_at: "Just now",
         text_content: text,
@@ -441,12 +619,10 @@ function initFeedPage() {
         commentsCount: 0,
       };
 
-      const posts = getPosts();
       posts.unshift(newPost);
       savePosts(posts);
 
-      if (postTextInput) postTextInput.value = "";
-      clearPreview();
+      resetComposer();
       renderFeedPosts();
     });
   }
@@ -462,8 +638,22 @@ function initMarketplacePage() {
   const adImagePreview = document.getElementById("adImagePreview");
   const adImagePreviewImg = document.getElementById("adImagePreviewImg");
   const removeAdImageBtn = document.getElementById("removeAdImage");
+  const sellerPostingCard = document.querySelector(".seller-posting-card");
 
   if (!marketGrid) return;
+
+  const user = getUser();
+  const isSeller = user && user.role === "General Vendor";
+  let editingAdId = null;
+
+  // Show/hide posting form based on seller status
+  if (sellerPostingCard) {
+    if (!isSeller) {
+      sellerPostingCard.style.display = "none";
+    } else {
+      sellerPostingCard.style.display = "block";
+    }
+  }
 
   let selectedAdImage = null;
 
@@ -536,6 +726,15 @@ function initMarketplacePage() {
       const imageMarkup = ad.image_url
         ? `<img src="${escapeHtml(ad.image_url)}" alt="${escapeHtml(ad.product_title)}" class="market-card-img" />`
         : "";
+      const canManageAd = ownsContent(ad.vendorId, ad.vendorName, user);
+      const ownerButtons = canManageAd ? `
+            <div style="position:relative; margin-left:8px;">
+              <button class="submit-btn" style="padding: 8px 12px; font-size: 14px; min-width: 44px;" data-action="owner-menu-toggle-ad" data-ad-id="${ad.id}" aria-label="Listing actions"><i class="fa-solid fa-pen"></i></button>
+              <div class="owner-menu" style="display:none; position:absolute; right:0; top:46px; z-index:10; min-width:120px; background:#fff; border:1px solid #d9e2f2; border-radius:12px; box-shadow:0 10px 24px rgba(21,44,90,.12); overflow:hidden;">
+                <button type="button" class="owner-menu-item" style="width:100%; display:block; padding:10px 14px; border:0; background:#fff; text-align:left;" data-action="edit-ad" data-ad-id="${ad.id}">Edit</button>
+                <button type="button" class="owner-menu-item" style="width:100%; display:block; padding:10px 14px; border:0; background:#fff; text-align:left; color:#b91c1c;" data-action="delete-ad" data-ad-id="${ad.id}">Delete</button>
+              </div>
+            </div>` : "";
       return `
         <article class="news-card" style="margin-bottom: 20px;">
           ${imageMarkup}
@@ -554,6 +753,7 @@ function initMarketplacePage() {
               <span class="news-source"><i class="fa-solid fa-shop"></i> ${escapeHtml(ad.vendorName)}</span>
               <button class="submit-btn" style="padding: 8px 16px; font-size: 14px;"
                 data-action="contact" data-ad-id="${ad.id}">Contact Seller</button>
+              ${ownerButtons}
             </div>
           </div>
         </article>`;
@@ -562,6 +762,44 @@ function initMarketplacePage() {
 
   // Event delegation for contact button
   marketGrid.addEventListener("click", (e) => {
+    const menuToggle = e.target.closest('[data-action="owner-menu-toggle-ad"]');
+    if (menuToggle) {
+      const wrap = menuToggle.closest("div[style*='position:relative']");
+      const menu = wrap?.querySelector(".owner-menu");
+      if (menu) {
+        const isOpen = menu.classList.contains("open");
+        closeOwnerMenus(marketGrid);
+        menu.classList.toggle("open", !isOpen);
+        menu.style.display = !isOpen ? "block" : "none";
+      }
+      return;
+    }
+
+    if (!e.target.closest(".owner-menu") && !e.target.closest('[data-action="owner-menu-toggle-ad"]')) {
+      closeOwnerMenus(marketGrid);
+      marketGrid.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+    }
+
+    const editBtn = e.target.closest('[data-action="edit-ad"]');
+    if (editBtn) {
+      beginEditAd(Number(editBtn.dataset.adId));
+      closeOwnerMenus(marketGrid);
+      marketGrid.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+      return;
+    }
+
+    const deleteBtn = e.target.closest('[data-action="delete-ad"]');
+    if (deleteBtn) {
+      if (!confirm("Delete your listing permanently?")) return;
+      const adId = Number(deleteBtn.dataset.adId);
+      saveMarketAds(getMarketAds().filter(item => item.id !== adId));
+      if (editingAdId === adId) clearMarketForm();
+      closeOwnerMenus(marketGrid);
+      marketGrid.querySelectorAll(".owner-menu").forEach(menu => { menu.style.display = "none"; });
+      renderAds();
+      return;
+    }
+
     const contactBtn = e.target.closest('[data-action="contact"]');
     if (!contactBtn) return;
     const adId = Number(contactBtn.dataset.adId);
@@ -570,11 +808,31 @@ function initMarketplacePage() {
     if (ad) openModal(ad.vendorName, ad.vendorPhone || "Not provided");
   });
 
+  function beginEditAd(adId) {
+    const ad = getMarketAds().find(item => item.id === adId);
+    if (!ad || !ownsContent(ad.vendorId, ad.vendorName, user)) return;
+    editingAdId = adId;
+    document.getElementById("adTitle").value = ad.product_title || "";
+    document.getElementById("adDescription").value = ad.description || "";
+    document.getElementById("adPrice").value = ad.price || "";
+    document.getElementById("adQuantity").value = ad.quantity || "";
+    document.getElementById("adUnit").value = ad.unit || "";
+    document.getElementById("adCategory").value = ad.category || "";
+    document.getElementById("adLocation").value = ad.location || "";
+    selectedAdImage = ad.image_url || null;
+    if (adImagePreviewImg && selectedAdImage) adImagePreviewImg.src = selectedAdImage;
+    if (adImagePreview) adImagePreview.style.display = selectedAdImage ? "block" : "none";
+    if (marketSubmitBtn) marketSubmitBtn.textContent = "Update Product";
+    document.querySelector(".marketplace-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function clearMarketForm() {
     document.querySelectorAll('.marketplace-form input, .marketplace-form textarea, .marketplace-form select').forEach(el => el.value = '');
     selectedAdImage = null;
+    editingAdId = null;
     if (adImagePreview) adImagePreview.style.display = "none";
     if (adImagePreviewImg) adImagePreviewImg.src = "";
+    if (marketSubmitBtn) marketSubmitBtn.textContent = "Post Product";
   }
 
   if (marketClearBtn) {
@@ -585,10 +843,14 @@ function initMarketplacePage() {
     marketSubmitBtn.addEventListener("click", (e) => {
       e.preventDefault();
 
-      const user = getUser();
       if (!user) {
         alert("You must be logged in to post a product.");
         window.location.href = "login.html";
+        return;
+      }
+
+      if (!isSeller) {
+        alert("Only sellers (vendors) can post products. Please create a vendor account to post.");
         return;
       }
 
@@ -605,25 +867,50 @@ function initMarketplacePage() {
         return;
       }
 
-      const newAd = {
-        id: Date.now(),
-        vendorName: user.full_name,
-        vendorPhone: user.mobile_number,
-        product_title: title,
-        description: desc,
-        price: Number(price),
-        category: category,
-        location: location,
-        quantity: Number(quantity) || 0,
-        unit: unit || "unit",
-        image_url: selectedAdImage || null
-      };
-
       const ads = getMarketAds();
-      ads.unshift(newAd);
-      saveMarketAds(ads);
 
-      alert("Product posted successfully!");
+      if (editingAdId) {
+        const ad = ads.find(item => item.id === editingAdId);
+        if (!ad || !ownsContent(ad.vendorId, ad.vendorName, user)) {
+          alert("You can only edit your own listing.");
+          clearMarketForm();
+          return;
+        }
+
+        ad.vendorId = user.id;
+        ad.vendorName = user.full_name;
+        ad.vendorPhone = user.mobile_number;
+        ad.product_title = title;
+        ad.description = desc;
+        ad.price = Number(price);
+        ad.category = category;
+        ad.location = location;
+        ad.quantity = Number(quantity) || 0;
+        ad.unit = unit || "unit";
+        ad.image_url = selectedAdImage || null;
+        saveMarketAds(ads);
+        alert("Product updated successfully!");
+      } else {
+        const newAd = {
+          id: Date.now(),
+          vendorId: user.id,
+          vendorName: user.full_name,
+          vendorPhone: user.mobile_number,
+          product_title: title,
+          description: desc,
+          price: Number(price),
+          category: category,
+          location: location,
+          quantity: Number(quantity) || 0,
+          unit: unit || "unit",
+          image_url: selectedAdImage || null
+        };
+
+        ads.unshift(newAd);
+        saveMarketAds(ads);
+        alert("Product posted successfully!");
+      }
+
       clearMarketForm();
       renderAds();
     });
@@ -767,6 +1054,7 @@ function renderAdminPanel(panel) {
 // ==========================================
 initGlobalAuth();
 initLoginPage();
+initSignupPage();
 initFeedPage();
 initMarketplacePage();
 initProfilePage();
@@ -790,7 +1078,7 @@ function initProfilePage() {
   // 1. Render Profile Card
   const initials = getInitials(user.full_name);
   const allPosts = getPosts();
-  const userPosts = allPosts.filter(p => p.authorName === user.full_name);
+  const userPosts = allPosts.filter(p => ownsContent(p.authorId, p.authorName, user));
   
   // Using the image's exact structure
   profileCard.innerHTML = `
@@ -808,10 +1096,6 @@ function initProfilePage() {
         <span class="stat-text">Posts</span>
       </div>
       <div class="stat-box">
-        <span class="stat-num">7</span>
-        <span class="stat-text">Connections</span>
-      </div>
-      <div class="stat-box">
         <span class="stat-num">0</span>
         <span class="stat-text">Followers</span>
       </div>
@@ -824,15 +1108,7 @@ function initProfilePage() {
 
   // 2. Render Action Buttons (Matching the Pill Design)
   if (profileActions) {
-    profileActions.innerHTML = `
-      <button id="editProfileBtn" class="pill-btn primary">Edit Profile</button>
-      <button id="viewConnectionsBtn" class="pill-btn secondary">View Connections</button>
-      <button id="requestRoleBtn" class="pill-btn secondary">Request Role</button>
-    `;
-
-    document.getElementById("editProfileBtn").addEventListener("click", () => alert("Edit Profile feature coming soon!"));
-    document.getElementById("viewConnectionsBtn").addEventListener("click", () => alert("Connections view coming soon!"));
-    document.getElementById("requestRoleBtn").addEventListener("click", () => alert("Role request sent!"));
+    profileActions.innerHTML = "";
   }
 
   // 3. Render User's Own Posts
@@ -844,6 +1120,7 @@ function initProfilePage() {
       const avatarClass = index % 2 === 0 ? "avatar-a" : "avatar-b";
       const imageMarkup = post.image_url ? `<div class="post-photo post-photo-has-image"><img class="post-photo-img" src="${escapeHtml(post.image_url)}" alt="Post image" /></div>` : "";
       const isLiked = userLikes.includes(post.id);
+      const canManagePost = ownsContent(post.authorId, post.authorName, user);
       const existingComments = (post.comments || []).map(c => `
         <div class="comment-item">
           <span class="comment-author">${escapeHtml(c.authorName)}</span>
@@ -851,6 +1128,9 @@ function initProfilePage() {
           <span class="comment-time">${escapeHtml(c.created_at)}</span>
         </div>
       `).join("");
+      const ownerButtons = canManagePost ? `
+          <button type="button" class="pill-btn secondary" style="padding:6px 12px; font-size:12px;" data-action="edit-post" data-post-id="${post.id}">Edit</button>
+          <button type="button" class="pill-btn secondary" style="padding:6px 12px; font-size:12px;" data-action="delete-post" data-post-id="${post.id}">Delete</button>` : "";
 
       return `<article class="post-card" data-post-id="${post.id}">
         <div class="post-head">
@@ -859,6 +1139,7 @@ function initProfilePage() {
             <p class="post-user">${escapeHtml(post.authorName)}</p>
             <p class="post-time">${escapeHtml(post.created_at)}</p>
           </div>
+          <div style="display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; justify-content:flex-end;">${ownerButtons}</div>
         </div>
         <p class="post-text">${escapeHtml(post.text_content || "")}</p>
         ${imageMarkup}
@@ -912,6 +1193,30 @@ function initProfilePage() {
           section.style.display = isVisible ? "none" : "block";
           if (!isVisible) section.querySelector(".comment-textarea")?.focus();
         }
+        return;
+      }
+
+      const editPostBtn = e.target.closest('[data-action="edit-post"]');
+      if (editPostBtn) {
+        const postId = Number(editPostBtn.dataset.postId);
+        const posts = getPosts();
+        const post = posts.find(p => p.id === postId);
+        if (!post || !ownsContent(post.authorId, post.authorName, user)) return;
+        postTextInput.value = post.text_content || "";
+        selectedImageData = post.image_url || "";
+        if (postImagePreview && selectedImageData) postImagePreview.src = selectedImageData;
+        if (postImagePreviewWrap) postImagePreviewWrap.hidden = !selectedImageData;
+        if (postBtn) postBtn.textContent = "Update";
+        postTextInput.focus();
+        return;
+      }
+
+      const deletePostBtn = e.target.closest('[data-action="delete-post"]');
+      if (deletePostBtn) {
+        if (!confirm("Delete your post permanently?")) return;
+        const postId = Number(deletePostBtn.dataset.postId);
+        savePosts(getPosts().filter(p => p.id !== postId));
+        renderFeedPosts();
         return;
       }
 
