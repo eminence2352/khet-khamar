@@ -4,6 +4,8 @@
   --primary-light: #c7eabb;
   --bg-light: #e8f5bd;
   --text-dark: #333333;
+  --header-height: 56px;
+  --top-nav-height: 56px;
 }
 
 * {
@@ -21,6 +23,7 @@ body {
 .top-header {
   position: sticky;
   top: 0;
+  height: var(--header-height);
   z-index: 20;
   display: flex;
   align-items: center;
@@ -67,7 +70,7 @@ body {
 }
 
 .main-content {
-  padding: 0.85rem 0.85rem 6.2rem;
+  padding: calc(var(--header-height) + var(--top-nav-height) + 140px) 0.85rem 6.2rem;
   max-width: 780px;
   margin: 0 auto;
   background: linear-gradient(135deg, #e4eaf8 0%, #d5e2f7 50%, #e6eefc 100%);
@@ -84,8 +87,18 @@ body {
 }
 
 .create-post-card {
+  margin-top: 36px;
   margin-bottom: 0.9rem;
   padding: 0.8rem;
+}
+
+@media (max-width: 600px) {
+  .main-content {
+    padding-top: calc(var(--header-height) + var(--top-nav-height) + 72px);
+  }
+  .create-post-card {
+    margin-top: 20px;
+  }
 }
 .create-post-card.drag-active {
   border-color: #354cce;
@@ -330,18 +343,19 @@ body {
   color: #c75d02;
 }
 
-.bottom-nav {
+ .bottom-nav {
   position: fixed;
-  bottom: 0;
+  top: var(--header-height);
+  height: var(--top-nav-height);
   left: 0;
   width: 100%;
   z-index: 30;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  align-items: end;
-  padding: 0.3rem 0.25rem 0.4rem;
-  background: rgba(255, 255, 255, 0.85);
-  border-top: 1px solid rgba(212, 220, 240, 0.4);
+  align-items: start;
+  padding: 0.6rem 0.25rem 0.4rem;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(212, 220, 240, 0.4);
   backdrop-filter: blur(10px);
 }
 
@@ -618,6 +632,11 @@ body {
 
 .auth-btn.logout:hover {
   background: #dc2626;
+}
+
+/* Hide the header logout button (keep logout controls inside profile page) */
+.top-header .auth-btn.logout {
+  display: none !important;
 }
 
 .guest-mode-banner {
@@ -1013,7 +1032,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  padding-bottom: 80px;
+  padding-top: calc(var(--header-height) + var(--top-nav-height) + 16px);
   background: linear-gradient(135deg, #e4eaf8 0%, #d5e2f7 50%, #e6eefc 100%);
   min-height: 100vh;
 }
@@ -1186,7 +1205,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  padding-bottom: 80px;
+  padding-top: calc(var(--header-height) + var(--top-nav-height) + 16px);
   background: linear-gradient(135deg, #e4eaf8 0%, #d5e2f7 50%, #e6eefc 100%);
   min-height: 100vh;
 }
@@ -1594,7 +1613,7 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
-  padding-bottom: 80px; 
+  padding-top: calc(var(--header-height) + var(--top-nav-height) + 16px);
   /* Add that beautiful soft gradient background from the image */
   background: linear-gradient(135deg, #e4eaf8 0%, #d5e2f7 50%, #e6eefc 100%);
   min-height: 100vh;
