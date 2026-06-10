@@ -1,0 +1,161 @@
+erDiagram
+    users ||--o{ posts : "creates"
+    users ||--o{ comments : "writes"
+    users ||--o{ post_likes : "gives"
+    users ||--o{ marketplace_ads : "lists (as vendor)"
+    users ||--o{ reviews : "writes (as buyer)"
+    users ||--o{ reviews : "receives (as seller)"
+    users ||--o{ notifications : "receives"
+    users ||--o{ notifications : "triggers (as actor)"
+    users ||--o{ connection_requests : "sends"
+    users ||--o{ connection_requests : "receives"
+    users ||--o{ connections : "has (user_one)"
+    users ||--o{ connections : "has (user_two)"
+    users ||--o{ follows : "follows (follower)"
+    users ||--o{ follows : "is followed (expert)"
+    users ||--o{ role_change_requests : "submits"
+    users ||--o{ role_change_requests : "reviews"
+    
+    posts ||--o{ comments : "has"
+    posts ||--o{ post_likes : "receives"
+    posts ||--o{ notifications : "generates"
+    
+    comments ||--o{ notifications : "generates"
+    
+    marketplace_ads ||--o{ reviews : "receives"
+
+    users {
+        INT id PK
+        VARCHAR mobile_number UK
+        VARCHAR email UK
+        VARCHAR password_hash
+        VARCHAR full_name
+        ENUM role
+        VARCHAR district_location
+        VARCHAR profile_picture_path
+        TEXT bio
+        TINYINT is_verified
+        TINYINT is_active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    posts {
+        INT id PK
+        INT user_id FK
+        ENUM post_type
+        TEXT text_content
+        VARCHAR image_path
+        VARCHAR shared_news_title
+        TEXT shared_news_excerpt
+        VARCHAR shared_news_url
+        VARCHAR shared_news_source
+        VARCHAR shared_news_category
+        INT likes_count
+        TINYINT is_active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    comments {
+        INT id PK
+        INT post_id FK
+        INT user_id FK
+        TEXT text_content
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    post_likes {
+        INT id PK
+        INT post_id FK
+        INT user_id FK
+        DATETIME created_at
+    }
+
+    marketplace_ads {
+        INT id PK
+        INT vendor_id FK
+        VARCHAR product_title
+        TEXT description
+        DECIMAL price
+        ENUM category
+        VARCHAR location
+        VARCHAR image_path
+        INT quantity
+        VARCHAR unit
+        TINYINT is_active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    reviews {
+        INT id PK
+        INT buyer_id FK
+        INT seller_id FK
+        INT marketplace_ad_id FK
+        TINYINT rating
+        TEXT review_text
+        TINYINT transaction_passed
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    notifications {
+        INT id PK
+        INT recipient_id FK
+        INT actor_id FK
+        VARCHAR notification_type
+        INT post_id FK
+        INT comment_id FK
+        TINYINT is_read
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    agricultural_news {
+        INT id PK
+        VARCHAR title
+        TEXT excerpt
+        TEXT content
+        ENUM category
+        VARCHAR image_url
+        VARCHAR source
+        TINYINT is_featured
+        TINYINT is_active
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    connection_requests {
+        INT id PK
+        INT sender_id FK
+        INT receiver_id FK
+        ENUM status
+        DATETIME created_at
+        DATETIME responded_at
+    }
+
+    connections {
+        INT id PK
+        INT user_one_id FK
+        INT user_two_id FK
+        DATETIME created_at
+    }
+
+    follows {
+        INT id PK
+        INT follower_id FK
+        INT expert_id FK
+        DATETIME created_at
+    }
+
+    role_change_requests {
+        INT id PK
+        INT user_id FK
+        ENUM desired_role
+        ENUM status
+        INT reviewed_by FK
+        DATETIME created_at
+        DATETIME responded_at
+    }
